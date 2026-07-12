@@ -172,7 +172,8 @@ public class FishingMinigameScreen extends Screen {
         float delta = fishTarget - fishPos;
         float desired = MathHelper.clamp(delta * 4.0f, -maxSpeed, maxSpeed);
         fishVel += MathHelper.clamp(desired - fishVel, -2.2f * DT, 2.2f * DT);
-        fishPos = MathHelper.clamp(fishPos + fishVel * DT, 0.0f, 1.0f);
+        // Keep the icon's center just inside the track so it never hides behind the border.
+        fishPos = MathHelper.clamp(fishPos + fishVel * DT, 0.03f, 0.97f);
     }
 
     private void tickProgress() {
@@ -212,7 +213,10 @@ public class FishingMinigameScreen extends Screen {
     }
 
     private boolean fishInsideBar() {
-        return fishPos >= barPos && fishPos <= barPos + barSize;
+        // Small tolerance so the icon visibly touching the bar counts as caught;
+        // render and simulation share one linear track mapping, so this matches
+        // exactly what the player sees.
+        return fishPos >= barPos - 0.03f && fishPos <= barPos + barSize + 0.03f;
     }
 
     private void finish(boolean success) {
@@ -246,9 +250,14 @@ public class FishingMinigameScreen extends Screen {
         context.drawCenteredTextWithShadow(this.textRenderer, this.title,
                 trackX + (trackW + 26) / 2, trackY - 16, 0xFFFFFF);
 
+        // One linear mapping for everything on the track: normalized p -> trackY + p * trackH.
+        // The bar spans [barPos, barPos + barSize], so its bottom lands exactly on the
+        // track floor when barPos = 1 - barSize; icons draw centered on their position.
+
         // Catch bar
         int barPixH = Math.round(barSize * trackH);
-        int barY = trackY + Math.round(barLerp * (trackH - barPixH));
+        int barY = trackY + Math.round(barLerp * trackH);
+        if (barY + barPixH > trackY + trackH) barY = trackY + trackH - barPixH; // rounding guard
         int barColor = fishInsideBar() ? 0xA04FD46B : 0xA0D4C24F;
         context.fill(trackX + 2, barY, trackX + trackW - 2, barY + barPixH, barColor);
         context.drawBorder(trackX + 2, barY, trackW - 4, barPixH, 0xFFFFFFFF);
@@ -256,7 +265,7 @@ public class FishingMinigameScreen extends Screen {
         // Treasure chest
         if (treasurePos >= 0.0f && !treasureCollected) {
             float tLerp = MathHelper.lerp(delta, Math.max(0.0f, prevTreasurePos), treasurePos);
-            int ty = trackY + Math.round(tLerp * (trackH - 14));
+            int ty = trackY + Math.round(tLerp * trackH) - 7;
             if (treasureProgress > 0.0f) {
                 int ring = Math.round(treasureProgress * 16);
                 context.fill(trackX + trackW / 2 - 9, ty - 2, trackX + trackW / 2 - 9 + ring, ty, 0xFFF2C744);
@@ -264,8 +273,8 @@ public class FishingMinigameScreen extends Screen {
             context.drawTexture(TREASURE_ICON, trackX + trackW / 2 - 7, ty, 0, 0, 14, 14, 14, 14);
         }
 
-        // Fish
-        int fy = trackY + Math.round(fishLerp * (trackH - 14));
+        // Fish (icon centered on fishPos)
+        int fy = trackY + Math.round(fishLerp * trackH) - 7;
         context.drawTexture(FISH_ICON, trackX + trackW / 2 - 7, fy, 0, 0, 14, 14, 14, 14);
 
         // Progress column
