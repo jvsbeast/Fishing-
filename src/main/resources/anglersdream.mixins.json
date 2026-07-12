@@ -6,6 +6,9 @@
     "FishingBobberEntityMixin",
     "ItemEntityMixin"
   ],
+  "client": [
+    "client.FishingBobberEntityRendererMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

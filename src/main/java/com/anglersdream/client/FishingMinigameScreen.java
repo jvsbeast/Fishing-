@@ -11,15 +11,22 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * Stardew Valley-style reel-in minigame.
  *
- * Hold left click (or space) to lift the green catch bar; release to let it fall.
- * Keep the fish inside the bar to fill the progress column on the right — let it
- * escape and progress drains. Fill it to land the catch, empty it and the fish
- * gets away. A treasure chest sometimes appears: hold the bar on it to collect
- * bonus loot. Never lose the fish after first contact for a Perfect catch.
+ * Hold left click, right click or space to lift the green catch bar; release to
+ * let it fall. Keep the fish inside the bar to fill the progress column; let it
+ * escape and progress drains. Fill the column to land the catch, empty it and
+ * the fish gets away. A treasure chest sometimes appears mid-fight: hold the bar
+ * on it to collect bonus loot. Never lose the fish after first contact for a
+ * Perfect catch.
+ *
+ * The simulation runs at a fixed 20 ticks per second in {@link #tick()} so it is
+ * frame-rate independent; {@link #render} only interpolates between the last two
+ * ticks. A short grace period after the hook is set lets the player reach the
+ * fish before any progress can drain.
  */
 public class FishingMinigameScreen extends Screen {
 
@@ -29,8 +36,12 @@ public class FishingMinigameScreen extends Screen {
     // Behavior ids (mirror StartMinigamePayload docs)
     private static final int MIXER = 0, SMOOTH = 1, DART = 2, SINKER = 3, FLOATER = 4;
 
+    private static final float DT = 1.0f / 20.0f;   // fixed tick step
+    private static final float GRACE_SECONDS = 1.5f;
+    private static final float HARD_TIMEOUT_SECONDS = 55.0f; // < server's 60s window
+
     private final int difficulty;
-    private int behavior;
+    private final int behavior;
     private final boolean hasTreasure;
 
     private final Random random = Random.create();
@@ -38,18 +49,25 @@ public class FishingMinigameScreen extends Screen {
     // All positions are normalized 0..1 from the top of the track.
     private final float barSize;      // catch bar height as a fraction of the track
     private float barPos;             // top of the catch bar
+    private float prevBarPos;
     private float barVel;
     private boolean holding;
 
     private float fishPos = 0.5f;     // center of the fish
+    private float prevFishPos = 0.5f;
+    private float fishVel;
     private float fishTarget = 0.5f;
-    private float retargetTimer;
+    private float retargetTimer = 0.6f;
+    private float dartPause;          // darters lunge, then rest
 
-    private float progress = 0.3f;
+    private float progress = 0.35f;
+    private float grace = GRACE_SECONDS;
+    private float elapsed;
     private boolean touched;          // fish has been inside the bar at least once
     private boolean perfect = true;
 
     private float treasurePos = -1.0f;
+    private float prevTreasurePos = -1.0f;
     private float treasureAppearIn;
     private float treasureProgress;
     private boolean treasureCollected;
@@ -57,7 +75,6 @@ public class FishingMinigameScreen extends Screen {
     private float mixerSwitchTimer;   // MIXER swaps sub-behavior periodically
     private int mixerMode = SMOOTH;
 
-    private long lastTimeNanos;
     private boolean resultSent;
 
     public FishingMinigameScreen(StartMinigamePayload payload) {
@@ -65,39 +82,59 @@ public class FishingMinigameScreen extends Screen {
         this.difficulty = payload.difficulty();
         this.behavior = payload.behavior();
         this.hasTreasure = payload.treasure();
-        this.barSize = 0.25f + 0.05f * MathHelper.clamp(payload.rodTier(), 0, 3);
-        this.barPos = 1.0f - barSize; // start at the bottom, like Stardew
-        this.treasureAppearIn = hasTreasure ? 2.0f + random.nextFloat() * 3.0f : Float.MAX_VALUE;
-        this.lastTimeNanos = System.nanoTime();
-    }
-
-    @Override
-    protected void init() {
-        this.lastTimeNanos = System.nanoTime();
+        this.barSize = 0.24f + 0.055f * MathHelper.clamp(payload.rodTier(), 0, 3);
+        this.barPos = 0.5f - barSize / 2.0f;  // start centered on the fish, not at the bottom
+        this.prevBarPos = barPos;
+        this.treasureAppearIn = hasTreasure ? 2.5f + random.nextFloat() * 3.0f : Float.MAX_VALUE;
     }
 
     // ------------------------------------------------------------------ simulation
 
-    private void update(float dt) {
+    @Override
+    public void tick() {
+        super.tick();
         if (resultSent) return;
 
-        // --- Catch bar physics ---
-        float accel = holding ? -2.6f : 2.2f;
-        barVel = MathHelper.clamp(barVel + accel * dt, -1.6f, 1.6f);
-        barPos += barVel * dt;
+        prevBarPos = barPos;
+        prevFishPos = fishPos;
+        prevTreasurePos = treasurePos;
+
+        elapsed += DT;
+        if (elapsed >= HARD_TIMEOUT_SECONDS) {
+            finish(false);
+            return;
+        }
+
+        tickBar();
+        tickFish();
+        tickProgress();
+        tickTreasure();
+
+        if (progress >= 1.0f) {
+            finish(true);
+        } else if (progress <= 0.0f) {
+            finish(false);
+        }
+    }
+
+    private void tickBar() {
+        float accel = holding ? -3.4f : 2.8f;
+        barVel = MathHelper.clamp(barVel + accel * DT, -1.15f, 1.15f);
+        barPos += barVel * DT;
         float maxPos = 1.0f - barSize;
         if (barPos <= 0.0f) {
             barPos = 0.0f;
             barVel = 0.0f;
         } else if (barPos >= maxPos) {
             barPos = maxPos;
-            barVel = barVel > 0.4f ? barVel * -0.35f : 0.0f; // small Stardew-style bounce
+            barVel = barVel > 0.45f ? barVel * -0.3f : 0.0f; // small Stardew-style bounce
         }
+    }
 
-        // --- Fish movement ---
+    private void tickFish() {
         int mode = behavior == MIXER ? mixerMode : behavior;
         if (behavior == MIXER) {
-            mixerSwitchTimer -= dt;
+            mixerSwitchTimer -= DT;
             if (mixerSwitchTimer <= 0.0f) {
                 mixerSwitchTimer = 2.0f + random.nextFloat() * 2.0f;
                 mixerMode = switch (random.nextInt(4)) {
@@ -109,59 +146,73 @@ public class FishingMinigameScreen extends Screen {
             }
         }
 
-        retargetTimer -= dt;
+        if (dartPause > 0.0f) {
+            dartPause -= DT;
+        } else {
+            retargetTimer -= DT;
+        }
         if (retargetTimer <= 0.0f) {
-            float interval = Math.max(0.35f, 1.1f - difficulty * 0.008f);
-            if (mode == DART) interval *= 0.55f;
+            float interval = Math.max(0.5f, 1.4f - difficulty * 0.008f);
+            if (mode == DART) {
+                interval *= 0.6f;
+                dartPause = 0.25f + random.nextFloat() * 0.3f; // rest between lunges
+            }
             retargetTimer = interval * (0.6f + random.nextFloat() * 0.8f);
             fishTarget = switch (mode) {
-                case DART -> random.nextFloat();                                   // anywhere, instantly scary
-                case SINKER -> MathHelper.clamp(fishPos + 0.1f + random.nextFloat() * 0.45f, 0.0f, 1.0f);
-                case FLOATER -> MathHelper.clamp(fishPos - 0.1f - random.nextFloat() * 0.45f, 0.0f, 1.0f);
-                default -> MathHelper.clamp(fishPos + (random.nextFloat() - 0.5f) * 0.7f, 0.0f, 1.0f);
+                case DART -> random.nextFloat();
+                case SINKER -> MathHelper.clamp(fishPos + 0.12f + random.nextFloat() * 0.4f, 0.0f, 1.0f);
+                case FLOATER -> MathHelper.clamp(fishPos - 0.12f - random.nextFloat() * 0.4f, 0.0f, 1.0f);
+                default -> MathHelper.clamp(fishPos + (random.nextFloat() - 0.5f) * 0.65f, 0.0f, 1.0f);
             };
         }
-        float fishSpeed = 0.18f + difficulty * 0.010f;
-        if (mode == DART) fishSpeed *= 1.35f;
-        float step = fishSpeed * dt;
-        float delta = fishTarget - fishPos;
-        fishPos += MathHelper.clamp(delta, -step, step);
 
-        // --- Overlap & progress ---
-        float barBottom = barPos + barSize;
-        boolean overlap = fishPos >= barPos && fishPos <= barBottom;
+        // Ease toward the target: accelerate, brake near it. Feels organic and fair.
+        float maxSpeed = 0.15f + difficulty * 0.0048f;
+        if (mode == DART && dartPause <= 0.0f) maxSpeed *= 1.45f;
+        float delta = fishTarget - fishPos;
+        float desired = MathHelper.clamp(delta * 4.0f, -maxSpeed, maxSpeed);
+        fishVel += MathHelper.clamp(desired - fishVel, -2.2f * DT, 2.2f * DT);
+        fishPos = MathHelper.clamp(fishPos + fishVel * DT, 0.0f, 1.0f);
+    }
+
+    private void tickProgress() {
+        boolean overlap = fishInsideBar();
         if (overlap) {
             touched = true;
-            progress += 0.22f * dt;
+            grace = 0.0f;                     // contact ends the grace period early
+            progress += 0.28f * DT;
         } else {
             if (touched) perfect = false;
-            progress -= (0.20f + difficulty * 0.0028f) * dt;
-        }
-
-        // --- Treasure chest ---
-        if (hasTreasure && !treasureCollected) {
-            if (treasurePos < 0.0f) {
-                treasureAppearIn -= dt;
-                if (treasureAppearIn <= 0.0f) {
-                    treasurePos = 0.1f + random.nextFloat() * 0.65f;
-                }
+            if (grace > 0.0f) {
+                grace -= DT;                  // no drain while the player reaches the fish
             } else {
-                boolean onTreasure = treasurePos >= barPos && treasurePos <= barBottom;
-                if (onTreasure) {
-                    treasureProgress += dt / 1.4f;
-                    if (treasureProgress >= 1.0f) treasureCollected = true;
-                } else {
-                    treasureProgress = Math.max(0.0f, treasureProgress - dt / 2.0f);
-                }
+                progress -= (0.13f + difficulty * 0.0024f) * DT;
             }
         }
+        progress = MathHelper.clamp(progress, 0.0f, 1.0f);
+    }
 
-        // --- End conditions ---
-        if (progress >= 1.0f) {
-            finish(true);
-        } else if (progress <= 0.0f) {
-            finish(false);
+    private void tickTreasure() {
+        if (!hasTreasure || treasureCollected) return;
+        if (treasurePos < 0.0f) {
+            treasureAppearIn -= DT;
+            if (treasureAppearIn <= 0.0f) {
+                treasurePos = 0.1f + random.nextFloat() * 0.65f;
+                prevTreasurePos = treasurePos;
+            }
+        } else {
+            boolean onTreasure = treasurePos >= barPos && treasurePos <= barPos + barSize;
+            if (onTreasure) {
+                treasureProgress += DT / 1.3f;
+                if (treasureProgress >= 1.0f) treasureCollected = true;
+            } else {
+                treasureProgress = Math.max(0.0f, treasureProgress - DT / 2.0f);
+            }
         }
+    }
+
+    private boolean fishInsideBar() {
+        return fishPos >= barPos && fishPos <= barPos + barSize;
     }
 
     private void finish(boolean success) {
@@ -176,10 +227,10 @@ public class FishingMinigameScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        long now = System.nanoTime();
-        float dt = Math.min(0.05f, (now - lastTimeNanos) / 1_000_000_000.0f);
-        lastTimeNanos = now;
-        update(dt);
+        super.render(context, mouseX, mouseY, delta);
+
+        float barLerp = MathHelper.lerp(delta, prevBarPos, barPos);
+        float fishLerp = MathHelper.lerp(delta, prevFishPos, fishPos);
 
         int trackH = Math.min(160, this.height - 80);
         int trackW = 26;
@@ -197,15 +248,15 @@ public class FishingMinigameScreen extends Screen {
 
         // Catch bar
         int barPixH = Math.round(barSize * trackH);
-        int barY = trackY + Math.round(barPos * (trackH - barPixH));
-        boolean overlapNow = fishPos >= barPos && fishPos <= barPos + barSize;
-        int barColor = overlapNow ? 0xA04FD46B : 0xA0D4C24F;
+        int barY = trackY + Math.round(barLerp * (trackH - barPixH));
+        int barColor = fishInsideBar() ? 0xA04FD46B : 0xA0D4C24F;
         context.fill(trackX + 2, barY, trackX + trackW - 2, barY + barPixH, barColor);
         context.drawBorder(trackX + 2, barY, trackW - 4, barPixH, 0xFFFFFFFF);
 
         // Treasure chest
         if (treasurePos >= 0.0f && !treasureCollected) {
-            int ty = trackY + Math.round(treasurePos * (trackH - 14));
+            float tLerp = MathHelper.lerp(delta, Math.max(0.0f, prevTreasurePos), treasurePos);
+            int ty = trackY + Math.round(tLerp * (trackH - 14));
             if (treasureProgress > 0.0f) {
                 int ring = Math.round(treasureProgress * 16);
                 context.fill(trackX + trackW / 2 - 9, ty - 2, trackX + trackW / 2 - 9 + ring, ty, 0xFFF2C744);
@@ -214,7 +265,7 @@ public class FishingMinigameScreen extends Screen {
         }
 
         // Fish
-        int fy = trackY + Math.round(fishPos * (trackH - 14));
+        int fy = trackY + Math.round(fishLerp * (trackH - 14));
         context.drawTexture(FISH_ICON, trackX + trackW / 2 - 7, fy, 0, 0, 14, 14, 14, 14);
 
         // Progress column
@@ -231,8 +282,6 @@ public class FishingMinigameScreen extends Screen {
                     Text.translatable("screen.anglersdream.perfect_indicator").formatted(Formatting.GOLD),
                     trackX + (trackW + 26) / 2, trackY + trackH + 12, 0xFFD700);
         }
-
-        super.render(context, mouseX, mouseY, delta);
     }
 
     @Override
@@ -244,7 +293,7 @@ public class FishingMinigameScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT || button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             holding = true;
             return true;
         }
@@ -253,7 +302,7 @@ public class FishingMinigameScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT || button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             holding = false;
             return true;
         }
@@ -262,7 +311,7 @@ public class FishingMinigameScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 32) { // space
+        if (keyCode == GLFW.GLFW_KEY_SPACE) {
             holding = true;
             return true;
         }
@@ -271,7 +320,7 @@ public class FishingMinigameScreen extends Screen {
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 32) {
+        if (keyCode == GLFW.GLFW_KEY_SPACE) {
             holding = false;
             return true;
         }

@@ -48,6 +48,9 @@ public class TrophyBlockEntity extends BlockEntity {
     @Override
     protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
         super.writeNbt(nbt, registryLookup);
+        // Always write a marker: the client discards empty block entity update packets,
+        // so an NBT that only ever contains "Fish" would never sync the removal.
+        nbt.putBoolean("HasFish", !fish.isEmpty());
         if (!fish.isEmpty()) {
             nbt.put("Fish", fish.encode(registryLookup));
         }

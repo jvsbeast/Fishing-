@@ -68,7 +68,8 @@ public abstract class FishingBobberEntityMixin {
         }
 
         boolean isFish = loot.size() == 1 && loot.get(0).contains(AnglersDream.FISH_DATA);
-        if (isFish && player instanceof ServerPlayerEntity serverPlayer) {
+        // Creative players skip the reel-in minigame and get the fish instantly.
+        if (isFish && !player.isCreative() && player instanceof ServerPlayerEntity serverPlayer) {
             MinigameServer.begin(serverPlayer, world, self.getBlockPos(), usedItem, loot.get(0));
         } else {
             MinigameServer.deliver(world, self.getX(), self.getY(), self.getZ(), player, loot);
