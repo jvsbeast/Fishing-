@@ -4,7 +4,7 @@ for the Angler's Dream Fabric mod."""
 import json, os, random
 from PIL import Image, ImageDraw
 
-ROOT = "/home/claude/anglers-dream"
+ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = f"{ROOT}/src/main/resources/assets/anglersdream"
 DATA = f"{ROOT}/src/main/resources/data/anglersdream"
 JAVA = f"{ROOT}/src/main/java/com/anglersdream"
@@ -299,42 +299,787 @@ def gen_data():
 
 
 # ---------------------------------------------------------------- textures
-def draw_fish(body_hex, fin_hex, seed):
-    rng = random.Random(seed)
-    body = hex_to_rgb(body_hex)
-    fin = hex_to_rgb(fin_hex)
-    dark = shade(body, 0.55)
-    belly = shade(body, 1.35)
+#
+# Every species has its own hand-tuned 16x16 sprite: a silhouette (oval, pike,
+# eel, ray, flatfish, billfish, serpent...) plus species-specific markings and
+# details, drawn with the palette from SPECIES. Fish face right; tail at left.
 
-    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
+WHITE = (245, 245, 245)
+INK = (20, 20, 25)
+GOLD = (238, 200, 80)
+RED = (214, 64, 54)
 
-    x0 = rng.choice([4, 5])
-    x1 = rng.choice([12, 13])
-    y0 = rng.choice([5, 6])
-    y1 = rng.choice([10, 11])
 
-    # body
-    d.ellipse([x0, y0, x1, y1], fill=body, outline=dark)
-    # belly highlight
-    d.ellipse([x0 + 2, (y0 + y1) // 2, x1 - 2, y1 - 1], fill=belly)
-    # tail
-    d.polygon([(x0, (y0 + y1) // 2), (x0 - 3, y0 - 1), (x0 - 3, y1 + 1)], fill=fin, outline=shade(fin, 0.6))
-    # dorsal fin
-    d.polygon([(x0 + 3, y0), ((x0 + x1) // 2, y0 - 3), (x1 - 3, y0)], fill=fin)
-    # pectoral fin
-    d.polygon([((x0 + x1) // 2, y1 - 1), ((x0 + x1) // 2 + 2, y1 + 2), ((x0 + x1) // 2 - 1, y1 + 1)], fill=fin)
-    # eye
-    ex = x1 - 3
-    ey = y0 + 2
-    d.point((ex, ey), fill=(255, 255, 255, 255))
-    d.point((ex + 1, ey), fill=(20, 20, 25, 255))
-    # a couple of scale flecks
-    for _ in range(3):
-        sx = rng.randint(x0 + 2, x1 - 4)
-        sy = rng.randint(y0 + 1, y1 - 2)
-        d.point((sx, sy), fill=dark)
-    return img
+class Sprite:
+    """16x16 canvas with a body mask so patterns stay inside the silhouette."""
+
+    def __init__(self, body_hex, fin_hex):
+        self.img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        self.d = ImageDraw.Draw(self.img)
+        self.mask = Image.new("1", (16, 16), 0)
+        self.md = ImageDraw.Draw(self.mask)
+        self.body = hex_to_rgb(body_hex)
+        self.fin = hex_to_rgb(fin_hex)
+        self.dark = shade(self.body, 0.55)
+        self.light = shade(self.body, 1.4)
+        self.fdark = shade(self.fin, 0.6)
+        self.flight = shade(self.fin, 1.35)
+        self.box = (3, 5, 13, 11)
+
+    # ---- silhouettes ----
+    def ellipse(self, box):
+        self.d.ellipse(box, fill=self.body, outline=self.dark)
+        self.md.ellipse(box, fill=1)
+        self.box = tuple(box)
+
+    def poly(self, pts):
+        self.d.polygon(pts, fill=self.body, outline=self.dark)
+        self.md.polygon(pts, fill=1)
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        self.box = (min(xs), min(ys), max(xs), max(ys))
+
+    def snake(self, pts, r=1):
+        """Eel/serpent body: overlapping discs along a path."""
+        for x, y in pts:
+            self.d.ellipse([x - r, y - r, x + r, y + r], fill=self.body)
+            self.md.ellipse([x - r, y - r, x + r, y + r], fill=1)
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        self.box = (min(xs) - r, min(ys) - r, max(xs) + r, max(ys) + r)
+
+    # ---- pixel helpers ----
+    def px(self, x, y, c):
+        """Paint only inside the body silhouette."""
+        if 0 <= x < 16 and 0 <= y < 16 and self.mask.getpixel((x, y)):
+            self.d.point((x, y), fill=c)
+
+    def raw(self, x, y, c):
+        if 0 <= x < 16 and 0 <= y < 16:
+            self.d.point((x, y), fill=c)
+
+    # ---- patterns (mask-constrained) ----
+    def vbar(self, x, c, top=0, bottom=0):
+        for y in range(self.box[1] + 1 + top, self.box[3] - bottom):
+            self.px(x, y, c)
+
+    def hstripe(self, y, c, pad=1):
+        for x in range(self.box[0] + pad, self.box[2] - pad + 1):
+            self.px(x, y, c)
+
+    def belly(self, c=None):
+        c = c or self.light
+        x0, y0, x1, y1 = self.box
+        cy = (y0 + y1) // 2
+        for y in range(cy + 1, y1):
+            for x in range(x0 + 2, x1 - 1):
+                self.px(x, y, c)
+
+    def back(self, c):
+        x0, y0, x1, y1 = self.box
+        cy = (y0 + y1) // 2
+        for y in range(y0 + 1, cy):
+            for x in range(x0 + 2, x1 - 1):
+                self.px(x, y, c)
+
+    def dots(self, pts, c):
+        for x, y in pts:
+            self.px(x, y, c)
+
+    def mottle(self, seed, n, c):
+        rng = random.Random(seed)
+        x0, y0, x1, y1 = self.box
+        for _ in range(n):
+            self.px(rng.randint(x0 + 1, x1 - 1), rng.randint(y0 + 1, y1 - 1), c)
+
+    # ---- fins ----
+    def tail_fan(self, x, cy, c=None, spread=3):
+        c = c or self.fin
+        self.d.polygon([(x, cy), (x - 3, cy - spread), (x - 3, cy + spread)],
+                       fill=c, outline=self.fdark)
+
+    def tail_fork(self, x, cy, c=None):
+        c = c or self.fin
+        self.d.polygon([(x, cy), (x - 3, cy - 3), (x - 1, cy)], fill=c)
+        self.d.polygon([(x, cy), (x - 3, cy + 3), (x - 1, cy)], fill=c)
+
+    def tail_crescent(self, x, cy, c=None):
+        c = c or self.fin
+        self.d.line([(x, cy), (x - 3, cy - 4)], fill=c)
+        self.d.line([(x - 1, cy), (x - 3, cy - 3)], fill=c)
+        self.d.line([(x, cy), (x - 3, cy + 4)], fill=c)
+        self.d.line([(x - 1, cy), (x - 3, cy + 3)], fill=c)
+
+    def dorsal(self, x0, x1, ybase, ytop, c=None):
+        c = c or self.fin
+        self.d.polygon([(x0, ybase), ((x0 + x1) // 2, ytop), (x1, ybase)], fill=c)
+
+    def spines(self, xs, ybase, h=2, c=None):
+        c = c or self.fin
+        for x in xs:
+            self.d.line([(x, ybase), (x, ybase - h)], fill=c)
+
+    def sail(self, x0, x1, ybase, ytop, c=None):
+        c = c or self.fin
+        self.d.polygon([(x0, ybase), (x0 + 1, ytop + 1), ((x0 + x1) // 2, ytop),
+                        (x1 - 1, ytop + 1), (x1, ybase)], fill=c)
+
+    def pect(self, x, y, c=None):
+        c = c or self.fin
+        self.d.polygon([(x, y), (x + 2, y + 2), (x - 1, y + 2)], fill=c)
+
+    # ---- face / extras ----
+    def eye(self, x, y, ring=None):
+        if ring:
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                self.raw(x + dx, y + dy, ring)
+        self.raw(x, y, WHITE)
+        self.raw(x + 1, y, INK)
+
+    def teeth(self, pts):
+        for x, y in pts:
+            self.raw(x, y, WHITE)
+
+    def barbels(self, pts, c=None):
+        c = c or self.dark
+        for (x0, y0), (x1, y1) in pts:
+            self.d.line([(x0, y0), (x1, y1)], fill=c)
+
+    def bill(self, x, y, ln, c=None):
+        self.d.line([(x, y), (x + ln, y - 1)], fill=c or self.dark)
+
+
+SPRITES = {}
+
+
+def sprite(sid):
+    def reg(fn):
+        SPRITES[sid] = fn
+        return fn
+    return reg
+
+
+# ------------------------------- OCEAN -------------------------------
+@sprite("herring")
+def _(c):
+    c.ellipse([3, 6, 13, 10])
+    c.belly()
+    c.hstripe(8, c.dark)
+    c.dorsal(7, 10, 6, 4)
+    c.tail_fork(3, 8)
+    c.pect(9, 9)
+    c.eye(11, 7)
+
+
+@sprite("mackerel")
+def _(c):
+    c.ellipse([3, 6, 13, 10])
+    c.belly()
+    for x in (5, 7, 9, 11):          # wavy tiger-striped back
+        c.px(x, 6, c.dark)
+        c.px(x + 1, 7, c.dark)
+    c.dorsal(7, 10, 6, 4)
+    c.tail_fork(3, 8)
+    c.eye(11, 7)
+
+
+@sprite("sea_bass")
+def _(c):
+    c.ellipse([3, 5, 13, 11])
+    c.belly()
+    c.hstripe(8, c.dark)
+    c.spines((6, 8, 10), 5, 2)
+    c.tail_fan(3, 8)
+    c.pect(9, 9)
+    c.eye(11, 7)
+
+
+@sprite("bluefin_tuna")
+def _(c):
+    c.poly([(3, 8), (6, 5), (11, 5), (14, 8), (11, 11), (6, 11)])
+    c.back(shade(c.body, 0.75))
+    c.belly((200, 210, 218))
+    for x in (8, 9, 10, 11):         # yellow finlets
+        c.raw(x, 4, GOLD)
+    c.tail_crescent(3, 8)
+    c.pect(10, 9)
+    c.eye(11, 7)
+
+
+@sprite("swordfish")
+def _(c):
+    c.poly([(4, 8), (7, 6), (12, 6), (13, 8), (12, 10), (7, 10)])
+    c.belly()
+    c.bill(13, 8, 2, c.dark)
+    c.raw(15, 7, c.dark)
+    c.dorsal(7, 10, 6, 2)            # tall dorsal
+    c.tail_crescent(4, 8)
+    c.eye(11, 7)
+
+
+@sprite("leviathan_ray")
+def _(c):
+    c.poly([(4, 8), (8, 4), (13, 8), (8, 12)])
+    c.dots([(7, 7), (9, 7), (8, 9), (10, 8), (6, 8)], c.fin)   # violet spots
+    c.d.line([(4, 8), (1, 11)], fill=c.dark)                    # tail whip
+    c.raw(1, 12, c.fin)
+    c.eye(10, 7)
+
+
+# ---------------------------- WARM_OCEAN -----------------------------
+@sprite("parrotfish")
+def _(c):
+    c.ellipse([4, 5, 13, 11])
+    c.hstripe(6, c.fin)
+    c.hstripe(10, c.fin)
+    c.raw(13, 8, c.flight)           # beak
+    c.raw(13, 9, c.flight)
+    c.tail_fan(4, 8)
+    c.pect(10, 9)
+    c.eye(11, 7)
+
+
+@sprite("butterflyfish")
+def _(c):
+    c.ellipse([4, 5, 12, 11])
+    c.vbar(10, c.fin)                # black band through the eye
+    c.vbar(11, c.fin)
+    c.px(6, 6, c.fin)                # false eyespot near tail
+    c.px(6, 7, c.fin)
+    c.dorsal(6, 10, 5, 3)
+    c.tail_fan(4, 8, spread=2)
+    c.eye(11, 7)
+
+
+@sprite("lionfish")
+def _(c):
+    c.ellipse([4, 6, 12, 10])
+    for x in (5, 7, 9, 11):
+        c.vbar(x, c.fin)
+    for x0, y0, x1, y1 in ((5, 6, 3, 3), (7, 6, 6, 2), (9, 6, 9, 2), (11, 6, 12, 3)):
+        c.d.line([(x0, y0), (x1, y1)], fill=c.fdark)            # venomous rays
+    c.tail_fan(4, 8, spread=2)
+    c.eye(10, 7)
+
+
+@sprite("mahi_mahi")
+def _(c):
+    c.poly([(3, 8), (6, 5), (12, 5), (13, 6), (13, 10), (6, 11)])
+    c.belly(c.fin)                   # golden belly
+    for x in range(6, 13):           # long low dorsal along the whole back
+        c.raw(x, 4, shade(c.body, 0.7))
+    c.tail_fork(3, 8, c.fin)
+    c.eye(11, 7)
+
+
+@sprite("sailfish")
+def _(c):
+    c.poly([(3, 8), (6, 6), (12, 6), (13, 8), (12, 10), (6, 10)])
+    c.belly()
+    c.sail(5, 11, 5, 2)              # huge sail
+    c.bill(13, 8, 2, c.dark)
+    c.raw(15, 7, c.dark)
+    c.tail_crescent(3, 8)
+    c.eye(11, 7)
+
+
+@sprite("sunken_emperor")
+def _(c):
+    c.ellipse([4, 5, 13, 11])
+    c.hstripe(6, c.fin)
+    c.hstripe(10, c.fin)
+    for x in (11, 12, 13):           # golden crown spikes
+        c.raw(x, 4, GOLD)
+    c.raw(12, 3, GOLD)
+    c.tail_fan(4, 8, GOLD)
+    c.mottle("emperor", 4, c.dark)   # barnacled hide
+    c.eye(11, 7, ring=GOLD)
+
+
+# ------------------------------ FROZEN -------------------------------
+@sprite("arctic_cod")
+def _(c):
+    c.ellipse([3, 6, 13, 10])
+    c.belly()
+    c.mottle("cod", 8, c.dark)
+    c.raw(13, 10, c.dark)            # chin barbel
+    for x0, x1 in ((5, 6), (7, 8), (9, 10)):                    # triple dorsal
+        c.dorsal(x0, x1 + 1, 6, 5)
+    c.tail_fan(3, 8, spread=2)
+    c.eye(11, 7)
+
+
+@sprite("icefin")
+def _(c):
+    c.ellipse([4, 6, 12, 9])
+    c.dots([(6, 7), (8, 8), (10, 7)], WHITE)                    # ice glints
+    c.dorsal(6, 9, 6, 4, c.flight)
+    c.tail_fan(4, 7, c.flight, spread=2)
+    c.pect(9, 8, c.flight)
+    c.eye(10, 7)
+
+
+@sprite("arctic_char")
+def _(c):
+    c.ellipse([3, 6, 13, 10])
+    c.back(shade(c.body, 0.8))
+    c.belly(c.flight)
+    c.dots([(5, 7), (7, 6), (9, 7), (11, 6)], WHITE)            # pale spots
+    c.tail_fork(3, 8)
+    c.dorsal(7, 10, 6, 4)
+    c.eye(11, 7)
+
+
+@sprite("greenland_halibut")
+def _(c):
+    c.ellipse([2, 7, 13, 12])        # flatfish lying on its side
+    c.mottle("halibut", 10, c.dark)
+    c.hstripe(8, shade(c.body, 0.8))
+    c.eye(10, 8)
+    c.eye(8, 8)                      # both eyes on the up-side
+    c.tail_fan(2, 9, spread=2)
+
+
+@sprite("frostjaw_pike")
+def _(c):
+    c.poly([(3, 8), (5, 6), (10, 6), (14, 7), (14, 9), (10, 10), (5, 10)])
+    c.belly()
+    for x in (6, 8, 10):
+        c.px(x, 7, c.flight)         # icy flecks
+    c.teeth([(13, 9), (14, 9)])      # frost jaw
+    c.dorsal(5, 8, 6, 5)             # dorsal set far back
+    c.tail_fan(3, 8, spread=2)
+    c.eye(12, 7)
+
+
+@sprite("glacier_wraithfin")
+def _(c):
+    c.snake([(3, 10), (5, 9), (7, 8), (9, 7), (11, 7), (13, 8)])
+    for x, y in ((5, 7), (7, 6), (9, 5), (11, 5)):
+        c.raw(x, y, c.fin)           # trailing spectral fin ribbon
+    c.dots([(6, 9), (9, 7), (11, 7)], WHITE)
+    c.d.line([(3, 11), (1, 13)], fill=c.fin)                    # wispy tail
+    c.d.line([(3, 10), (1, 10)], fill=c.fin)
+    c.eye(12, 7)
+
+
+# ------------------------------- RIVER -------------------------------
+@sprite("minnow")
+def _(c):
+    c.ellipse([5, 7, 11, 9])
+    c.hstripe(8, c.light, pad=1)
+    c.tail_fork(5, 8)
+    c.eye(9, 8)
+
+
+@sprite("river_perch")
+def _(c):
+    c.ellipse([3, 5, 13, 11])
+    c.belly()
+    for x in (5, 7, 9, 11):
+        c.vbar(x, c.dark)
+    c.spines((6, 8, 10), 5, 2)
+    c.tail_fan(3, 8)
+    c.eye(11, 7)
+
+
+@sprite("brown_trout")
+def _(c):
+    c.ellipse([3, 6, 13, 10])
+    c.belly((222, 205, 160))
+    c.dots([(5, 7), (8, 6), (11, 7)], c.dark)
+    c.dots([(6, 8), (9, 7), (10, 8)], RED)                      # red spots
+    c.raw(5, 5, c.body)              # adipose fin nub
+    c.tail_fan(3, 8, spread=2)
+    c.eye(11, 7)
+
+
+@sprite("zander")
+def _(c):
+    c.poly([(3, 8), (5, 6), (11, 6), (14, 8), (11, 10), (5, 10)])
+    c.belly()
+    for x in (5, 7, 9):
+        c.vbar(x, c.dark)
+    c.spines((6, 8), 6, 2)
+    c.teeth([(13, 9)])
+    c.tail_fork(3, 8)
+    c.eye(12, 7, ring=c.light)       # glassy nocturnal eye
+
+
+@sprite("golden_sturgeon")
+def _(c):
+    c.poly([(3, 9), (6, 7), (11, 7), (15, 8), (11, 10), (6, 10)])
+    for x in (5, 7, 9, 11):          # bony scutes along the back
+        c.raw(x, 7, c.light)
+    c.barbels([((12, 10), (12, 12)), ((13, 10), (13, 12))])
+    c.d.polygon([(3, 9), (1, 5), (3, 7)], fill=c.fin)           # upturned shark tail
+    c.d.polygon([(3, 9), (1, 10), (2, 10)], fill=c.fdark)
+    c.eye(12, 8)
+
+
+@sprite("river_king_salmon")
+def _(c):
+    c.ellipse([3, 5, 13, 10])
+    c.belly()
+    c.dots([(6, 6), (8, 7), (10, 6)], c.dark)
+    c.raw(14, 8, c.dark)             # hooked kype jaw
+    c.raw(14, 9, c.dark)
+    c.raw(13, 9, c.dark)
+    c.dorsal(7, 10, 5, 3)            # humped back
+    c.tail_fan(3, 7)
+    c.eye(11, 6)
+
+
+# ------------------------------- SWAMP -------------------------------
+@sprite("mudskipper")
+def _(c):
+    c.ellipse([3, 8, 11, 12])
+    c.ellipse([8, 6, 13, 11])        # bulbous head
+    c.belly()
+    c.raw(11, 5, c.body)             # periscope eyes on top
+    c.eye(11, 5)
+    c.d.line([(6, 12), (6, 14)], fill=c.fdark)                  # propped pectorals
+    c.d.line([(9, 12), (9, 14)], fill=c.fdark)
+    c.tail_fan(3, 10, spread=2)
+    c.mottle("skipper", 5, c.dark)
+
+
+@sprite("bullhead_catfish")
+def _(c):
+    c.ellipse([3, 7, 10, 11])
+    c.ellipse([8, 6, 14, 11])        # broad flat head
+    c.belly()
+    c.barbels([((14, 8), (15, 7)), ((14, 9), (15, 10)), ((13, 10), (14, 12))])
+    c.tail_fan(3, 9, spread=2)
+    c.eye(11, 7)
+
+
+@sprite("snakehead")
+def _(c):
+    c.poly([(3, 8), (4, 6), (12, 6), (14, 8), (12, 10), (4, 10)])
+    for x in range(5, 13):           # continuous low dorsal
+        c.raw(x, 5, c.fin)
+    for x in (5, 8, 11):             # camo blotches
+        c.px(x, 8, c.dark)
+        c.px(x + 1, 9, c.dark)
+    c.tail_fan(3, 8, spread=2)
+    c.eye(12, 7)
+
+
+@sprite("alligator_gar")
+def _(c):
+    c.poly([(3, 8), (5, 7), (10, 7), (15, 8), (10, 9), (5, 9)])
+    c.teeth([(12, 8), (14, 8)])      # toothy snout
+    for x in (5, 7, 9):              # armored diamond scales
+        c.raw(x, 7, c.light)
+        c.raw(x + 1, 8, c.light)
+    c.dorsal(4, 6, 7, 6)
+    c.tail_fan(3, 8, spread=2)
+    c.eye(11, 7)
+
+
+@sprite("bogmaw")
+def _(c):
+    c.ellipse([4, 5, 13, 11])
+    c.d.polygon([(11, 7), (15, 6), (15, 10), (11, 9)], fill=INK)  # gaping maw
+    c.teeth([(12, 7), (14, 7), (13, 9)])
+    c.d.line([(12, 10), (12, 13)], fill=c.fin)                    # algae drips
+    c.d.line([(14, 10), (14, 12)], fill=c.fin)
+    c.mottle("bog", 6, c.fin)
+    c.tail_fan(4, 8, spread=2)
+    c.eye(10, 5)
+
+
+@sprite("elder_lungfish")
+def _(c):
+    c.snake([(3, 9), (5, 8), (7, 8), (9, 8), (11, 8), (13, 9)])
+    for x in range(5, 12):           # long ribbon fins above and below
+        c.raw(x, 6, c.fin)
+        c.raw(x, 10, c.fin)
+    c.dots([(6, 8), (9, 7), (11, 8)], c.light)                  # ancient pale spots
+    c.d.line([(14, 10), (15, 11)], fill=c.dark)                 # whisker
+    c.eye(13, 8, ring=c.light)
+
+
+# ------------------------------- JUNGLE ------------------------------
+@sprite("neon_tetra")
+def _(c):
+    c.ellipse([5, 7, 11, 9])
+    c.hstripe(7, (110, 240, 255), pad=0)                        # electric blue stripe
+    for x in (5, 6, 7):              # red rear half
+        c.px(x, 8, c.fin)
+        c.px(x, 9, c.fin)
+    c.tail_fork(5, 8, c.fin)
+    c.eye(10, 8)
+
+
+@sprite("emerald_cichlid")
+def _(c):
+    c.ellipse([4, 5, 12, 11])
+    for x in (6, 8, 10):
+        c.vbar(x, c.fin)
+    c.spines((6, 8, 10), 5, 2)
+    c.tail_fan(4, 8, spread=2)
+    c.eye(10, 7, ring=GOLD)
+
+
+@sprite("piranha")
+def _(c):
+    c.ellipse([4, 5, 12, 11])
+    c.belly(c.fin)                   # red throat and belly
+    c.d.polygon([(10, 9), (13, 9), (12, 11)], fill=c.dark)      # underbite jaw
+    c.teeth([(11, 9), (12, 9)])
+    c.dorsal(6, 9, 5, 4)
+    c.tail_fan(4, 8, spread=2)
+    c.eye(10, 6)
+
+
+@sprite("peacock_bass")
+def _(c):
+    c.ellipse([3, 5, 13, 11])
+    c.belly(c.flight)
+    for x in (6, 8, 10):
+        c.vbar(x, c.dark)
+    c.raw(4, 8, INK)                 # ringed eyespot on the tail base
+    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+        c.raw(4 + dx, 8 + dy, GOLD)
+    c.spines((7, 9), 5, 2)
+    c.tail_fan(3, 8)
+    c.eye(11, 7)
+
+
+@sprite("arapaima")
+def _(c):
+    c.poly([(3, 8), (5, 6), (11, 6), (14, 8), (11, 10), (5, 10)])
+    for x, y in ((9, 7), (11, 8), (10, 9), (12, 8), (12, 9)):   # red-flecked rear scales
+        c.px(x, y, c.fin)
+    c.dorsal(4, 7, 6, 5)             # fins set far back near the tail
+    c.d.polygon([(4, 10), (5, 12), (7, 10)], fill=c.fin)
+    c.tail_fan(3, 8, spread=2)
+    c.eye(12, 7)
+
+
+@sprite("feathered_serpentfish")
+def _(c):
+    c.snake([(3, 10), (5, 9), (7, 8), (9, 7), (11, 7), (13, 8)])
+    for x, y in ((13, 5), (12, 4), (14, 4)):                    # golden quetzal crest
+        c.raw(x, y, c.fin)
+    c.raw(13, 6, c.fin)
+    for x, y in ((5, 7), (7, 6), (9, 5)):                       # plume ridge
+        c.raw(x, y, c.fin)
+    c.d.line([(3, 10), (1, 8)], fill=c.fin)                     # plumed tail
+    c.d.line([(3, 11), (1, 12)], fill=c.fin)
+    c.eye(12, 7, ring=RED)
+
+
+# ------------------------------- DESERT ------------------------------
+@sprite("desert_pupfish")
+def _(c):
+    c.ellipse([5, 7, 11, 10])
+    c.vbar(7, c.fin)
+    c.vbar(9, c.fin)
+    c.tail_fan(5, 8, spread=2)
+    c.eye(9, 8)
+
+
+@sprite("sandskimmer")
+def _(c):
+    c.ellipse([3, 8, 13, 11])
+    c.d.polygon([(7, 8), (9, 4), (11, 8)], fill=c.fin)          # wing-like pectoral
+    c.mottle("skimmer", 6, c.fin)
+    c.tail_fan(3, 9, spread=2)
+    c.eye(11, 8)
+
+
+@sprite("nile_perch")
+def _(c):
+    c.ellipse([3, 5, 13, 10])
+    c.back(shade(c.body, 0.8))
+    c.belly()
+    c.d.line([(12, 9), (14, 9)], fill=c.dark)                   # big mouth
+    c.spines((6, 8), 5, 2)
+    c.tail_fan(3, 7)
+    c.eye(11, 6, ring=GOLD)
+
+
+@sprite("tigerfish")
+def _(c):
+    c.poly([(3, 8), (5, 6), (12, 6), (14, 8), (12, 10), (5, 10)])
+    c.hstripe(7, c.fin)
+    c.hstripe(9, c.fin)
+    c.teeth([(13, 7), (14, 8), (13, 9)])                        # notorious fangs
+    c.tail_fork(3, 8, RED)
+    c.eye(11, 7)
+
+
+@sprite("mirage_eel")
+def _(c):
+    c.snake([(3, 10), (5, 9), (7, 9), (9, 8), (11, 8), (13, 9)])
+    for x in (5, 8, 11):             # heat-shimmer dashes
+        c.raw(x, 6, c.fin)
+        c.px(x, 8, c.light)
+    for x in range(5, 12, 2):        # thin ribbon fin
+        c.raw(x, 7, c.fin)
+    c.eye(13, 8)
+
+
+@sprite("pharaohs_goldscale")
+def _(c):
+    c.ellipse([3, 5, 13, 11])
+    c.vbar(11, c.fin)                # lapis nemes headband
+    c.vbar(5, c.fin)                 # lapis banding toward the tail
+    c.vbar(7, c.fin)
+    c.raw(12, 3, GOLD)               # crown spike
+    c.raw(12, 4, GOLD)
+    c.raw(11, 9, c.fin)              # kohl line under the eye
+    c.tail_fan(3, 8, c.fin)
+    c.eye(11, 7, ring=GOLD)
+
+
+# ------------------------------ MOUNTAIN -----------------------------
+@sprite("stone_loach")
+def _(c):
+    c.ellipse([3, 8, 13, 11])
+    c.mottle("loach", 10, c.dark)
+    c.mottle("loach2", 5, c.light)
+    c.barbels([((13, 9), (15, 9)), ((13, 10), (15, 11))])
+    c.tail_fan(3, 9, spread=2)
+    c.eye(11, 9)
+
+
+@sprite("alpine_dace")
+def _(c):
+    c.ellipse([3, 6, 12, 9])
+    c.hstripe(6, shade(c.body, 0.8))
+    c.belly()
+    c.dorsal(6, 9, 6, 5)
+    c.tail_fork(3, 7)
+    c.eye(10, 7)
+
+
+@sprite("golden_trout")
+def _(c):
+    c.ellipse([3, 6, 13, 10])
+    c.hstripe(8, RED)                # crimson lateral band
+    for x in (5, 7, 9, 11):          # parr marks
+        c.px(x, 7, c.dark)
+    c.dots([(6, 6), (10, 6)], c.dark)
+    c.tail_fan(3, 8, spread=2)
+    c.eye(11, 7)
+
+
+@sprite("cutthroat_trout")
+def _(c):
+    c.ellipse([3, 6, 13, 10])
+    c.belly()
+    c.raw(12, 9, c.fin)              # signature red throat slash
+    c.raw(13, 9, c.fin)
+    c.dots([(5, 7), (7, 6), (9, 7), (11, 6)], c.dark)
+    c.tail_fan(3, 8, spread=2)
+    c.eye(11, 7)
+
+
+@sprite("thunderfin")
+def _(c):
+    c.ellipse([4, 5, 12, 10])
+    for x, y in ((6, 6), (7, 7), (8, 6), (9, 7), (10, 6)):      # lightning flank
+        c.px(x, y, c.fin)
+    c.spines((6, 8, 10), 5, 3)       # jagged storm dorsal
+    c.tail_crescent(4, 8)
+    c.eye(10, 7, ring=c.fin)
+
+
+@sprite("skyplume_koi")
+def _(c):
+    c.ellipse([3, 6, 12, 10])
+    for x, y in ((6, 7), (7, 7), (7, 8), (10, 7), (11, 8)):     # red koi patches
+        c.px(x, y, c.fin)
+    c.d.line([(3, 8), (0, 5)], fill=c.flight)                   # flowing plume tail
+    c.d.line([(3, 8), (0, 8)], fill=c.fin)
+    c.d.line([(3, 9), (0, 12)], fill=c.flight)
+    c.raw(13, 9, c.dark)             # whisker
+    c.eye(11, 7)
+
+
+# ------------------------------ MUSHROOM -----------------------------
+@sprite("sporegill")
+def _(c):
+    c.ellipse([4, 6, 12, 10])
+    c.dots([(6, 7), (8, 8), (10, 7)], c.flight)                 # spore speckles
+    for x, y in ((5, 4), (9, 3), (13, 5)):                      # drifting spores
+        c.raw(x, y, c.fin)
+    for x in (5, 7, 9, 11):          # gill frills along the belly
+        c.raw(x, 11, c.fin)
+    c.tail_fan(4, 8, spread=2)
+    c.eye(10, 7)
+
+
+@sprite("shroomfin")
+def _(c):
+    c.ellipse([4, 6, 12, 11])
+    c.belly(c.fin)                   # cream stem-belly
+    c.d.polygon([(5, 6), (7, 3), (10, 3), (12, 6)], fill=c.body)  # mushroom cap dorsal
+    c.raw(7, 4, WHITE)               # cap spots
+    c.raw(9, 5, WHITE)
+    c.raw(6, 5, WHITE)
+    c.tail_fan(4, 9, c.fin, spread=2)
+    c.eye(10, 8)
+
+
+@sprite("mycelial_ancient")
+def _(c):
+    c.ellipse([3, 5, 13, 11])
+    for x in range(5, 12, 2):        # mycelium web threads
+        c.px(x, 7, c.fin)
+        c.px(x + 1, 9, c.fin)
+    c.hstripe(8, shade(c.fin, 0.85))
+    for x, y in ((4, 3), (8, 2), (12, 3)):                      # drifting spores
+        c.raw(x, y, c.fin)
+    c.tail_fan(3, 8, spread=2)
+    c.eye(11, 7, ring=(140, 255, 220))                          # eldritch glow eye
+
+
+# ------------------------------- CAVES -------------------------------
+@sprite("glowtail")
+def _(c):
+    c.ellipse([3, 6, 12, 10])
+    for x, glow in ((3, 1.0), (4, 0.8), (5, 0.55)):             # bioluminescent tail fade
+        col = tuple(int(a + (b - a) * glow) for a, b in zip(c.body, c.fin))
+        c.vbar(x, col, top=-1, bottom=-1)
+    c.tail_fan(3, 8)
+    c.raw(1, 7, c.fin)               # drifting glow motes
+    c.raw(2, 10, c.fin)
+    c.eye(10, 7)
+
+
+@sprite("cave_angler")
+def _(c):
+    c.ellipse([4, 5, 12, 11])
+    c.d.line([(10, 4), (10, 2)], fill=c.dark)                   # illicium stalk
+    c.raw(11, 2, c.fin)              # glowing esca
+    c.raw(12, 2, WHITE)
+    c.d.line([(9, 9), (13, 9)], fill=INK)                       # huge mouth
+    c.teeth([(10, 8), (12, 8), (11, 10)])
+    c.tail_fan(4, 8, spread=2)
+    c.eye(9, 6)
+
+
+@sprite("crystal_lanternfish")
+def _(c):
+    c.ellipse([3, 5, 13, 11])
+    for x, y in ((6, 6), (8, 7), (10, 6), (7, 9)):              # crystal facets
+        c.px(x, y, WHITE)
+    for x in (5, 7, 9, 11):          # photophore row along the belly
+        c.px(x, 10, c.fin)
+    c.spines((6, 8, 10), 5, 2, WHITE)                           # crystalline dorsal
+    c.tail_fan(3, 8, spread=2)
+    c.eye(11, 7, ring=c.fin)
+
+
+def draw_species(sid, body_hex, fin_hex):
+    c = Sprite(body_hex, fin_hex)
+    SPRITES[sid](c)
+    return c.img
 
 
 def draw_rod(tip_hex, cast=False):
@@ -435,8 +1180,8 @@ def draw_gui_treasure():
 def gen_textures():
     tex_item = f"{ASSETS}/textures/item"
     tex_block = f"{ASSETS}/textures/block"
-    for i, (sid, _n, _g, _r, _a, _b, _c, _d2, body, fin) in enumerate(SPECIES):
-        draw_fish(body, fin, seed=i * 7919 + 13).save(f"{tex_item}/{sid}.png")
+    for sid, _n, _g, _r, _a, _b, _c, _d2, body, fin in SPECIES:
+        draw_species(sid, body, fin).save(f"{tex_item}/{sid}.png")
     for rid, _n, tip in RODS:
         draw_rod(tip, cast=False).save(f"{tex_item}/{rid}.png")
         draw_rod(tip, cast=True).save(f"{tex_item}/{rid}_cast.png")
@@ -449,15 +1194,20 @@ def gen_textures():
     draw_gui_treasure().save(f"{gui_dir}/treasure_icon.png")
     draw_trophy_item().save(f"{tex_item}/trophy_stand.png")
     # mod icon: an upscaled legendary fish
-    icon = draw_fish("#e8b83a", "#2e6ba8", seed=42).resize((128, 128), Image.NEAREST)
+    icon = draw_species("pharaohs_goldscale", "#e8b83a", "#2e6ba8").resize((128, 128), Image.NEAREST)
     icon.save(f"{ASSETS}/icon.png")
 
 
 if __name__ == "__main__":
-    gen_registry()
-    gen_lang()
-    gen_models()
-    gen_data()
+    import sys
+    missing = [sid for sid, *_ in SPECIES if sid not in SPRITES]
+    if missing:
+        raise SystemExit(f"species without a sprite design: {missing}")
+    if "--textures" not in sys.argv:
+        gen_registry()
+        gen_lang()
+        gen_models()
+        gen_data()
     gen_textures()
     print("species:", len(SPECIES))
     print("assets generated OK")

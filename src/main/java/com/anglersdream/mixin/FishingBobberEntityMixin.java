@@ -7,6 +7,7 @@ import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.FishingBobberEntity;
+import net.minecraft.item.FishingRodItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -25,6 +26,23 @@ public abstract class FishingBobberEntityMixin {
 
     @Shadow private int hookCountdown;
     @Shadow @Nullable private Entity hookedEntity;
+
+    /**
+     * Vanilla removeIfInvalid discards the bobber unless the player is holding
+     * literally Items.FISHING_ROD, which instantly despawns the hook cast by any
+     * modded rod. Mirror the vanilla validity check but accept every FishingRodItem
+     * so tiered rods behave exactly like the vanilla rod.
+     */
+    @Inject(method = "removeIfInvalid", at = @At("HEAD"), cancellable = true)
+    private void anglersdream$allowTieredRods(PlayerEntity player, CallbackInfoReturnable<Boolean> cir) {
+        boolean holdingRod = player.getMainHandStack().getItem() instanceof FishingRodItem
+                || player.getOffHandStack().getItem() instanceof FishingRodItem;
+        FishingBobberEntity self = (FishingBobberEntity) (Object) this;
+        if (!player.isRemoved() && player.isAlive() && holdingRod
+                && self.squaredDistanceTo(player) <= 1024.0) {
+            cir.setReturnValue(false);
+        }
+    }
 
     /**
      * Replaces the vanilla fish loot roll with Angler's Dream generation.
