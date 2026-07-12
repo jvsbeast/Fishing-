@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld_rod",
+  "textures": {
+    "layer0": "anglersdream:item/poseidons_rod_cast"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.anglersdream.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "FishingBobberEntityMixin",
+    "ItemEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "textures": {
+    "particle": "anglersdream:block/trophy_stand",
+    "plaque": "anglersdream:block/trophy_stand"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        1,
+        15
+      ],
+      "to": [
+        15,
+        15,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plaque"
+        },
+        "south": {
+          "texture": "#plaque"
+        },
+        "east": {
+          "texture": "#plaque"
+        },
+        "west": {
+          "texture": "#plaque"
+        },
+        "up": {
+          "texture": "#plaque"
+        },
+        "down": {
+          "texture": "#plaque"
+        }
+      }
+    }
+  ]
+}
