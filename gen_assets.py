@@ -77,9 +77,10 @@ SPECIES = [
     ("crystal_lanternfish", "Crystal Lanternfish", "CAVES", "LEGENDARY", 110, 240, 40, 220, "#a4c4e8", "#e8bff2"),
 ]
 
-RODS = [("reinforced_rod", "Reinforced Rod", "#c8c8d0"),
-        ("prismatic_rod", "Prismatic Rod", "#5fd4c4"),
-        ("poseidons_rod", "Poseidon's Rod", "#4a90e8")]
+RODS = [("reinforced_rod", "Reinforced Rod"),
+        ("prismatic_rod", "Prismatic Rod"),
+        ("poseidons_rod", "Poseidon's Rod"),
+        ("celestial_rod", "Celestial Rod")]
 BAITS = [("worm_bait", "Worm Bait", "#c98a7a"),
          ("glow_bait", "Glow Bait", "#8ff2c4"),
          ("royal_bait", "Royal Bait", "#e8c355"),
@@ -164,7 +165,7 @@ def gen_lang():
     }
     for sid, name, *_ in SPECIES:
         lang[f"item.anglersdream.{sid}"] = name
-    for rid, name, _ in RODS:
+    for rid, name in RODS:
         lang[f"item.anglersdream.{rid}"] = name
     for bid, name, _ in BAITS:
         lang[f"item.anglersdream.{bid}"] = name
@@ -178,7 +179,7 @@ def gen_models():
         with open(f"{ASSETS}/models/item/{sid}.json", "w") as f:
             json.dump({"parent": "minecraft:item/generated",
                        "textures": {"layer0": f"anglersdream:item/{sid}"}}, f, indent=2)
-    for rid, _, _ in RODS:
+    for rid, _ in RODS:
         with open(f"{ASSETS}/models/item/{rid}.json", "w") as f:
             json.dump({
                 "parent": "minecraft:item/handheld_rod",
@@ -246,21 +247,31 @@ def gen_data():
                         {"item": "minecraft:iron_ingot"}],
         "result": {"id": "anglersdream:reinforced_rod"},
     })
+    # Every upgraded rod starts from a plain vanilla rod; the extra ingredients
+    # scale in rarity with the rod tier.
     w("prismatic_rod", {
         "type": "minecraft:crafting_shapeless",
-        "ingredients": [{"item": "anglersdream:reinforced_rod"},
+        "ingredients": [{"item": "minecraft:fishing_rod"},
                         {"item": "minecraft:prismarine_crystals"},
                         {"item": "minecraft:prismarine_crystals"},
-                        {"item": "minecraft:prismarine_shard"}],
+                        {"item": "minecraft:diamond"}],
         "result": {"id": "anglersdream:prismatic_rod"},
     })
     w("poseidons_rod", {
         "type": "minecraft:crafting_shapeless",
-        "ingredients": [{"item": "anglersdream:prismatic_rod"},
+        "ingredients": [{"item": "minecraft:fishing_rod"},
                         {"item": "minecraft:heart_of_the_sea"},
                         {"item": "minecraft:nautilus_shell"},
                         {"item": "minecraft:diamond"}],
         "result": {"id": "anglersdream:poseidons_rod"},
+    })
+    w("celestial_rod", {
+        "type": "minecraft:crafting_shapeless",
+        "ingredients": [{"item": "minecraft:fishing_rod"},
+                        {"item": "minecraft:nether_star"},
+                        {"item": "minecraft:dragon_breath"},
+                        {"item": "minecraft:echo_shard"}],
+        "result": {"id": "anglersdream:celestial_rod"},
     })
     w("worm_bait", {
         "type": "minecraft:crafting_shapeless",
@@ -1082,35 +1093,143 @@ def draw_species(sid, body_hex, fin_hex):
     return c.img
 
 
-def draw_rod(tip_hex, cast=False):
-    tip = hex_to_rgb(tip_hex)
-    wood = (117, 76, 36, 255)
-    wood_d = (84, 53, 24, 255)
-    line = (200, 200, 205, 255)
+# Rod sprites: the base is a faithful vanilla-fishing-rod silhouette (diagonal
+# wooden pole, wrapped grip, line off the tip) and each tier layers themed
+# detailing on top of it.
 
+ROD_WOOD = (125, 82, 40)
+ROD_WOOD_D = (86, 55, 26)
+ROD_GRIP = (66, 44, 24)
+ROD_LINE = (216, 216, 220)
+
+
+def pole_xy(i):
+    """Pole runs from the handle at (1,14) to the tip at (11,4)."""
+    return 1 + i, 14 - i
+
+
+def draw_rod_base(d, cast):
+    for i in range(11):
+        x, y = pole_xy(i)
+        d.point((x, y), fill=ROD_WOOD)
+        d.point((x + 1, y), fill=ROD_WOOD_D)
+    for i in range(3):  # wrapped grip at the handle
+        x, y = pole_xy(i)
+        d.point((x, y), fill=ROD_GRIP)
+        d.point((x + 1, y), fill=shade(ROD_GRIP, 0.7))
+    if cast:
+        d.point((13, 4), fill=ROD_LINE)
+        for y in range(5, 12):
+            d.point((14, y), fill=ROD_LINE)
+        d.point((13, 12), fill=(240, 240, 240))  # bobber
+        d.point((14, 12), fill=(214, 64, 54))
+        d.point((13, 13), fill=(214, 64, 54))
+        d.point((14, 13), fill=(150, 40, 34))
+    else:
+        d.point((13, 4), fill=ROD_LINE)
+        d.point((14, 5), fill=ROD_LINE)
+        d.point((14, 6), fill=ROD_LINE)
+        d.point((13, 7), fill=ROD_LINE)
+
+
+def rod_reinforced(d):
+    """Iron-banded workhorse: riveted steel bands and a capped tip."""
+    silver = (168, 174, 186)
+    silver_l = (218, 224, 234)
+    for i in (3, 4, 7):
+        x, y = pole_xy(i)
+        d.point((x, y), fill=silver)
+        d.point((x + 1, y), fill=shade(silver, 0.65))
+    rx, ry = pole_xy(4)
+    d.point((rx, ry - 1), fill=silver_l)  # rivet glint
+    for i in (9, 10):  # steel tip cap
+        x, y = pole_xy(i)
+        d.point((x, y), fill=silver)
+        d.point((x + 1, y), fill=shade(silver, 0.65))
+    d.point((11, 3), fill=silver_l)
+
+
+def rod_prismatic(d):
+    """Prismarine crystal rod: gem studs and a glowing crystal tip."""
+    teal = (86, 224, 207)
+    teal_d = (44, 150, 140)
+    glow = (208, 255, 246)
+    for i in (3, 6):
+        x, y = pole_xy(i)
+        d.point((x, y), fill=teal)
+        d.point((x + 1, y), fill=teal_d)
+    # crystal tip
+    d.point((11, 4), fill=teal)
+    d.point((12, 4), fill=teal_d)
+    d.point((11, 3), fill=glow)
+    d.point((12, 3), fill=teal)
+    d.point((12, 2), fill=glow)
+    d.point((10, 3), fill=teal_d)
+
+
+def rod_poseidons(d):
+    """Sea-god rod: golden trident head and a heart-of-the-sea orb."""
+    gold = (240, 200, 72)
+    gold_d = (172, 130, 32)
+    sea = (44, 122, 202)
+    sea_l = (128, 204, 244)
+    for i in (3, 4):
+        x, y = pole_xy(i)
+        d.point((x, y), fill=gold)
+        d.point((x + 1, y), fill=gold_d)
+    # heart of the sea below the head
+    d.point((9, 5), fill=sea)
+    d.point((10, 5), fill=sea_l)
+    d.point((9, 6), fill=shade(sea, 0.7))
+    d.point((10, 6), fill=sea)
+    # golden trident head
+    for x in (10, 11, 12, 13, 14):
+        d.point((x, 3), fill=gold_d)   # crossbar
+    for x in (10, 12, 14):
+        d.point((x, 2), fill=gold)     # prongs
+    d.point((12, 1), fill=gold)        # center prong reaches highest
+    d.point((11, 4), fill=gold)
+    d.point((12, 4), fill=gold_d)
+
+
+def rod_celestial(d):
+    """Heaven-forged rod: ender-violet windings and a radiant star tip."""
+    violet = (155, 89, 208)
+    violet_d = (98, 52, 140)
+    star_w = (255, 255, 255)
+    star_g = (255, 224, 120)
+    for i in (3, 4, 7):
+        x, y = pole_xy(i)
+        d.point((x, y), fill=violet)
+        d.point((x + 1, y), fill=violet_d)
+    # four-pointed star on the tip
+    cx, cy = 12, 3
+    d.point((cx, cy), fill=star_w)
+    d.point((cx - 1, cy), fill=star_g)
+    d.point((cx + 1, cy), fill=star_g)
+    d.point((cx, cy - 1), fill=star_g)
+    d.point((cx, cy + 1), fill=star_g)
+    d.point((cx - 1, cy - 1), fill=violet)
+    d.point((cx + 1, cy + 1), fill=violet_d)
+    # drifting stardust
+    d.point((9, 1), fill=star_w)
+    d.point((15, 2), fill=star_g)
+    d.point((7, 4), fill=violet)
+
+
+ROD_SPRITES = {
+    "reinforced_rod": rod_reinforced,
+    "prismatic_rod": rod_prismatic,
+    "poseidons_rod": rod_poseidons,
+    "celestial_rod": rod_celestial,
+}
+
+
+def draw_rod(rid, cast=False):
     img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    # diagonal rod from bottom-left to top-right
-    for i in range(12):
-        x = 2 + i
-        y = 13 - i
-        d.point((x, y), fill=wood)
-        d.point((x, y + 1), fill=wood_d)
-    # colored tip section
-    for i in range(9, 12):
-        d.point((2 + i, 13 - i), fill=tip + (255,))
-    # reel
-    d.rectangle([3, 11, 5, 13], fill=(60, 60, 65, 255))
-    # fishing line
-    if cast:
-        for y in range(2, 12):
-            d.point((14, y), fill=line)
-        d.point((14, 12), fill=(220, 60, 60, 255))  # bobber
-        d.point((13, 12), fill=(240, 240, 240, 255))
-    else:
-        d.point((13, 3), fill=line)
-        d.point((14, 4), fill=line)
-        d.point((14, 5), fill=line)
+    draw_rod_base(d, cast)
+    ROD_SPRITES[rid](d)
     return img
 
 
@@ -1182,9 +1301,9 @@ def gen_textures():
     tex_block = f"{ASSETS}/textures/block"
     for sid, _n, _g, _r, _a, _b, _c, _d2, body, fin in SPECIES:
         draw_species(sid, body, fin).save(f"{tex_item}/{sid}.png")
-    for rid, _n, tip in RODS:
-        draw_rod(tip, cast=False).save(f"{tex_item}/{rid}.png")
-        draw_rod(tip, cast=True).save(f"{tex_item}/{rid}_cast.png")
+    for rid, _n in RODS:
+        draw_rod(rid, cast=False).save(f"{tex_item}/{rid}.png")
+        draw_rod(rid, cast=True).save(f"{tex_item}/{rid}_cast.png")
     for bid, _n, c in BAITS:
         draw_bait(c).save(f"{tex_item}/{bid}.png")
     draw_trophy_block().save(f"{tex_block}/trophy_stand.png")

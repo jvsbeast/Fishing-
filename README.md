@@ -15,7 +15,7 @@ and craftable baits.
   The distribution is heavily skewed, so large, heavy specimens are genuinely rare.
 - **Variants:** every species can roll Shiny (5%), Golden (1.5%), or Prismatic (0.4%).
   Variant fish glint, get a colored name prefix, and emit ambient particles as dropped
-  items and while displayed on trophy stands.
+  items and while displayed on trophy stands — prismatic fish shimmer with rainbow dust.
 
 **Reel-In Minigame (Stardew Valley style)**
 - When a fish bites and you reel in, a minigame opens: hold **left click** (or **space**)
@@ -37,10 +37,12 @@ and craftable baits.
 - Mounted fish render at their **true size**: a 30 cm perch is a little plaque decoration,
   a 5 m Leviathan Ray dominates the wall.
 
-**Rods** (all enchantable, work with Lure / Luck of the Sea)
+**Rods** (all enchantable, work with Lure / Luck of the Sea; every recipe starts
+from a plain vanilla fishing rod plus rarer ingredients as the tiers climb)
 - Reinforced Rod — fishing rod + 2 iron ingots (+1 luck, +15% size, 128 durability)
-- Prismatic Rod — reinforced rod + 2 prismarine crystals + shard (+2 luck, +35% size, ×1.5 variants)
-- Poseidon's Rod — prismatic rod + heart of the sea + nautilus shell + diamond (+3 luck, +60% size, ×2.5 variants)
+- Prismatic Rod — fishing rod + 2 prismarine crystals + diamond (+2 luck, +35% size, ×1.5 variants, 384 durability)
+- Poseidon's Rod — fishing rod + heart of the sea + nautilus shell + diamond (+3 luck, +60% size, ×2.5 variants, 1024 durability)
+- Celestial Rod — fishing rod + nether star + dragon's breath + echo shard (+4 luck, +90% size, ×4 variants, 2048 durability)
 
 **Baits** (consumed automatically on each catch; offhand is checked first)
 - Worm Bait (dirt + seeds), Glow Bait, Royal Bait, Prismatic Lure — increasing rarity luck,

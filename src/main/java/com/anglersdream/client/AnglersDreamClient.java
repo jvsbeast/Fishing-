@@ -24,6 +24,7 @@ public class AnglersDreamClient implements ClientModInitializer {
         registerCastPredicate(AnglersDream.REINFORCED_ROD);
         registerCastPredicate(AnglersDream.PRISMATIC_ROD);
         registerCastPredicate(AnglersDream.POSEIDONS_ROD);
+        registerCastPredicate(AnglersDream.CELESTIAL_ROD);
     }
 
     /** Mirrors vanilla's "cast" model predicate so custom rods swap to their cast texture. */

@@ -5,16 +5,16 @@
       "item": "minecraft:fishing_rod"
     },
     {
-      "item": "minecraft:prismarine_crystals"
+      "item": "minecraft:nether_star"
     },
     {
-      "item": "minecraft:prismarine_crystals"
+      "item": "minecraft:dragon_breath"
     },
     {
-      "item": "minecraft:diamond"
+      "item": "minecraft:echo_shard"
     }
   ],
   "result": {
-    "id": "anglersdream:prismatic_rod"
+    "id": "anglersdream:celestial_rod"
   }
 }

@@ -61,6 +61,8 @@ public class AnglersDream implements ModInitializer {
             new Item.Settings().maxDamage(384));
     public static final Item POSEIDONS_ROD = new TieredRodItem(3, 0.60, 2.5,
             new Item.Settings().maxDamage(1024));
+    public static final Item CELESTIAL_ROD = new TieredRodItem(4, 0.90, 4.0,
+            new Item.Settings().maxDamage(2048));
 
     // Baits: rarity luck / size bonus / variant multiplier
     public static final Item WORM_BAIT = new BaitItem(1, 0.10, 1.0, new Item.Settings());
@@ -97,6 +99,7 @@ public class AnglersDream implements ModInitializer {
         Registry.register(Registries.ITEM, id("reinforced_rod"), REINFORCED_ROD);
         Registry.register(Registries.ITEM, id("prismatic_rod"), PRISMATIC_ROD);
         Registry.register(Registries.ITEM, id("poseidons_rod"), POSEIDONS_ROD);
+        Registry.register(Registries.ITEM, id("celestial_rod"), CELESTIAL_ROD);
 
         Registry.register(Registries.ITEM, id("worm_bait"), WORM_BAIT);
         Registry.register(Registries.ITEM, id("glow_bait"), GLOW_BAIT);
@@ -110,7 +113,7 @@ public class AnglersDream implements ModInitializer {
                 FabricBlockEntityTypeBuilder.create(TrophyBlockEntity::new, TROPHY_STAND).build());
 
         ItemGroup group = FabricItemGroup.builder()
-                .icon(() -> new ItemStack(POSEIDONS_ROD))
+                .icon(() -> new ItemStack(CELESTIAL_ROD))
                 .displayName(Text.translatable("itemgroup.anglersdream"))
                 .build();
         Registry.register(Registries.ITEM_GROUP, ITEM_GROUP_KEY, group);
@@ -119,6 +122,7 @@ public class AnglersDream implements ModInitializer {
             entries.add(REINFORCED_ROD);
             entries.add(PRISMATIC_ROD);
             entries.add(POSEIDONS_ROD);
+            entries.add(CELESTIAL_ROD);
             entries.add(WORM_BAIT);
             entries.add(GLOW_BAIT);
             entries.add(ROYAL_BAIT);

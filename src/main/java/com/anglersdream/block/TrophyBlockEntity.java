@@ -73,15 +73,18 @@ public class TrophyBlockEntity extends BlockEntity {
         if (fish.isEmpty()) return;
 
         Variant v = Variant.fromStack(fish);
-        if (v == Variant.NORMAL || v.particle == null) return;
+        if (v == Variant.NORMAL) return;
 
         Random r = world.getRandom();
         if (r.nextInt(4) != 0) return;
+
+        var particle = v.createParticle(r);
+        if (particle == null) return;
 
         Direction f = state.get(TrophyBlock.FACING);
         double x = pos.getX() + 0.5 - f.getOffsetX() * 0.30 + (r.nextDouble() - 0.5) * 0.7;
         double y = pos.getY() + 0.2 + r.nextDouble() * 0.7;
         double z = pos.getZ() + 0.5 - f.getOffsetZ() * 0.30 + (r.nextDouble() - 0.5) * 0.7;
-        world.addParticle(v.particle, x, y, z, 0.0, 0.02, 0.0);
+        world.addParticle(particle, x, y, z, 0.0, 0.02, 0.0);
     }
 }

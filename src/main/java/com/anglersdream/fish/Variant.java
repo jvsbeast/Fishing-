@@ -6,10 +6,14 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.particle.DustParticleEffect;
+import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.particle.SimpleParticleType;
 import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
+import org.joml.Vector3f;
 
 public enum Variant implements StringIdentifiable {
     NORMAL("normal", 0.0, null),
@@ -29,6 +33,22 @@ public enum Variant implements StringIdentifiable {
         this.id = id;
         this.baseChance = baseChance;
         this.particle = particle;
+    }
+
+    /**
+     * The ambient particle for this variant, or null for NORMAL. Prismatic fish emit
+     * rainbow dust: every particle rolls a random hue, so together they shimmer
+     * through the whole spectrum.
+     */
+    public ParticleEffect createParticle(Random random) {
+        if (this == PRISMATIC) {
+            int rgb = MathHelper.hsvToRgb(random.nextFloat(), 0.85f, 1.0f);
+            return new DustParticleEffect(new Vector3f(
+                    ((rgb >> 16) & 0xFF) / 255.0f,
+                    ((rgb >> 8) & 0xFF) / 255.0f,
+                    (rgb & 0xFF) / 255.0f), 1.0f);
+        }
+        return particle;
     }
 
     @Override

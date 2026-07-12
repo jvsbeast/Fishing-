@@ -25,12 +25,15 @@ public abstract class ItemEntityMixin {
         if (!(stack.getItem() instanceof FishItem)) return;
 
         Variant v = Variant.fromStack(stack);
-        if (v == Variant.NORMAL || v.particle == null) return;
+        if (v == Variant.NORMAL) return;
 
         Random r = world.getRandom();
         if (r.nextInt(5) != 0) return;
 
-        world.addParticle(v.particle,
+        var particle = v.createParticle(r);
+        if (particle == null) return;
+
+        world.addParticle(particle,
                 self.getX() + (r.nextDouble() - 0.5) * 0.6,
                 self.getY() + 0.3 + r.nextDouble() * 0.4,
                 self.getZ() + (r.nextDouble() - 0.5) * 0.6,

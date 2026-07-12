@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
     {
-      "item": "anglersdream:prismatic_rod"
+      "item": "minecraft:fishing_rod"
     },
     {
       "item": "minecraft:heart_of_the_sea"

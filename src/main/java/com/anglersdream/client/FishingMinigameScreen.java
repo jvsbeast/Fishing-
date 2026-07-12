@@ -82,7 +82,7 @@ public class FishingMinigameScreen extends Screen {
         this.difficulty = payload.difficulty();
         this.behavior = payload.behavior();
         this.hasTreasure = payload.treasure();
-        this.barSize = 0.24f + 0.055f * MathHelper.clamp(payload.rodTier(), 0, 3);
+        this.barSize = 0.24f + 0.05f * MathHelper.clamp(payload.rodTier(), 0, 4);
         this.barPos = 0.5f - barSize / 2.0f;  // start centered on the fish, not at the bottom
         this.prevBarPos = barPos;
         this.treasureAppearIn = hasTreasure ? 2.5f + random.nextFloat() * 3.0f : Float.MAX_VALUE;

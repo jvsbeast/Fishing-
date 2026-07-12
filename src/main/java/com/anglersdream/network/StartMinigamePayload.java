@@ -11,7 +11,7 @@ import net.minecraft.network.packet.CustomPayload;
  *
  * @param difficulty 10..95, drives fish speed and progress drain
  * @param behavior   0 mixer, 1 smooth, 2 dart, 3 sinker, 4 floater
- * @param rodTier    0 vanilla .. 3 Poseidon's — larger catch bar for better rods
+ * @param rodTier    0 vanilla .. 4 Celestial — larger catch bar for better rods
  * @param treasure   whether a treasure chest will appear mid-game
  */
 public record StartMinigamePayload(int difficulty, int behavior, int rodTier, boolean treasure)
