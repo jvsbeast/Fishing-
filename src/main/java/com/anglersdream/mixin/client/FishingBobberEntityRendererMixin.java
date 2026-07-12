@@ -17,8 +17,9 @@ public class FishingBobberEntityRendererMixin {
      * main hand holds literally Items.FISHING_ROD; any modded rod flips the check and
      * the line renders from the wrong side of the player instead of the rod tip.
      * Treat every FishingRodItem as a fishing rod so the line anchors correctly.
+     * The check lives in getHandPos (split out of render in 1.21).
      */
-    @Redirect(method = "render(Lnet/minecraft/entity/projectile/FishingBobberEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
+    @Redirect(method = "getHandPos(Lnet/minecraft/entity/player/PlayerEntity;FF)Lnet/minecraft/util/math/Vec3d;",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isOf(Lnet/minecraft/item/Item;)Z"))
     private boolean anglersdream$anyRodAnchorsLine(ItemStack stack, Item item) {
         if (item == Items.FISHING_ROD) {
