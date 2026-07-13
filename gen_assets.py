@@ -246,38 +246,79 @@ def gen_models():
         json.dump({"parent": "minecraft:item/generated",
                    "textures": {"layer0": "anglersdream:item/trophy_stand"}}, f, indent=2)
 
-    # aquarium: glass frame cube, plus a filled variant with an inner water cube
+    # aquarium: connected-texture-style tank. The core model is six nearly-clear
+    # glass faces (culled between adjacent tanks like vanilla glass); each of the
+    # block's twelve frame edges is its own multipart entry, drawn only when the
+    # tank does not continue in either direction flanking that edge, so borders
+    # merge into one outline across any build.
     all_faces = lambda tex, cull: {
         face: ({"texture": tex, "cullface": face} if cull else {"texture": tex})
         for face in ("north", "south", "east", "west", "up", "down")
     }
-    aquarium_frame_element = {
-        "from": [0, 0, 0], "to": [16, 16, 16],
-        "faces": all_faces("#frame", True),
-    }
-    with open(f"{ASSETS}/models/block/aquarium.json", "w") as f:
-        json.dump({
-            "textures": {"particle": "anglersdream:block/aquarium_frame",
-                         "frame": "anglersdream:block/aquarium_frame"},
-            "elements": [aquarium_frame_element],
-        }, f, indent=2)
-    with open(f"{ASSETS}/models/block/aquarium_filled.json", "w") as f:
-        json.dump({
-            "textures": {"particle": "anglersdream:block/aquarium_frame",
-                         "frame": "anglersdream:block/aquarium_frame",
-                         "water": "anglersdream:block/aquarium_water"},
-            "elements": [
-                {"from": [1, 1, 1], "to": [15, 15, 15], "faces": all_faces("#water", False)},
-                aquarium_frame_element,
-            ],
-        }, f, indent=2)
+
+    def wm(name, obj):
+        with open(f"{ASSETS}/models/block/{name}.json", "w") as f:
+            json.dump(obj, f, indent=2)
+
+    wm("aquarium_core", {
+        "textures": {"particle": "anglersdream:block/aquarium_frame",
+                     "glass": "anglersdream:block/aquarium_glass"},
+        "elements": [{"from": [0, 0, 0], "to": [16, 16, 16],
+                      "faces": all_faces("#glass", True)}],
+    })
+    # top-north horizontal beam; blockstate rotations place all 8 horizontal edges
+    wm("aquarium_edge_h", {
+        "textures": {"particle": "anglersdream:block/aquarium_frame",
+                     "edge": "anglersdream:block/aquarium_edge"},
+        "elements": [{"from": [0, 15, 0], "to": [16, 16, 1],
+                      "faces": all_faces("#edge", False)}],
+    })
+    # north-west vertical beam; y-rotations place all 4 vertical edges
+    wm("aquarium_edge_v", {
+        "textures": {"particle": "anglersdream:block/aquarium_frame",
+                     "edge": "anglersdream:block/aquarium_edge"},
+        "elements": [{"from": [0, 0, 0], "to": [1, 16, 1],
+                      "faces": all_faces("#edge", False)}],
+    })
+    wm("aquarium_water", {
+        "textures": {"particle": "anglersdream:block/aquarium_water",
+                     "water": "anglersdream:block/aquarium_water"},
+        "elements": [{"from": [0.1, 0.1, 0.1], "to": [15.9, 15.9, 15.9],
+                      "faces": all_faces("#water", False)}],
+    })
+    # standalone framed cube for the inventory/hand model
+    wm("aquarium_item", {
+        "parent": "minecraft:block/block",
+        "textures": {"particle": "anglersdream:block/aquarium_frame",
+                     "frame": "anglersdream:block/aquarium_frame"},
+        "elements": [{"from": [0, 0, 0], "to": [16, 16, 16],
+                      "faces": all_faces("#frame", False)}],
+    })
+
+    edge = "anglersdream:block/aquarium_edge_h"
+    vert = "anglersdream:block/aquarium_edge_v"
+    multipart = [
+        {"apply": {"model": "anglersdream:block/aquarium_core"}},
+        {"when": {"filled": "true"}, "apply": {"model": "anglersdream:block/aquarium_water"}},
+        # horizontal edges, top then bottom (x=180 flips top-north to bottom-south)
+        {"when": {"up": "false", "north": "false"}, "apply": {"model": edge}},
+        {"when": {"up": "false", "east": "false"}, "apply": {"model": edge, "y": 90}},
+        {"when": {"up": "false", "south": "false"}, "apply": {"model": edge, "y": 180}},
+        {"when": {"up": "false", "west": "false"}, "apply": {"model": edge, "y": 270}},
+        {"when": {"down": "false", "south": "false"}, "apply": {"model": edge, "x": 180}},
+        {"when": {"down": "false", "west": "false"}, "apply": {"model": edge, "x": 180, "y": 90}},
+        {"when": {"down": "false", "north": "false"}, "apply": {"model": edge, "x": 180, "y": 180}},
+        {"when": {"down": "false", "east": "false"}, "apply": {"model": edge, "x": 180, "y": 270}},
+        # vertical corner edges
+        {"when": {"north": "false", "west": "false"}, "apply": {"model": vert}},
+        {"when": {"north": "false", "east": "false"}, "apply": {"model": vert, "y": 90}},
+        {"when": {"south": "false", "east": "false"}, "apply": {"model": vert, "y": 180}},
+        {"when": {"south": "false", "west": "false"}, "apply": {"model": vert, "y": 270}},
+    ]
     with open(f"{ASSETS}/blockstates/aquarium.json", "w") as f:
-        json.dump({"variants": {
-            "filled=false": {"model": "anglersdream:block/aquarium"},
-            "filled=true": {"model": "anglersdream:block/aquarium_filled"},
-        }}, f, indent=2)
+        json.dump({"multipart": multipart}, f, indent=2)
     with open(f"{ASSETS}/models/item/aquarium.json", "w") as f:
-        json.dump({"parent": "anglersdream:block/aquarium"}, f, indent=2)
+        json.dump({"parent": "anglersdream:block/aquarium_item"}, f, indent=2)
     with open(f"{ASSETS}/models/item/fish_encyclopedia.json", "w") as f:
         json.dump({"parent": "minecraft:item/generated",
                    "textures": {"layer0": "anglersdream:item/fish_encyclopedia"}}, f, indent=2)
@@ -1379,6 +1420,21 @@ def draw_aquarium_water():
     return img
 
 
+def draw_aquarium_glass():
+    # almost fully clear: a whisper of tint plus one faint diagonal glint
+    img = Image.new("RGBA", (16, 16), (215, 238, 246, 14))
+    d = ImageDraw.Draw(img)
+    d.line([(2, 6), (6, 2)], fill=(255, 255, 255, 46))
+    d.line([(3, 8), (8, 3)], fill=(255, 255, 255, 26))
+    return img
+
+
+def draw_aquarium_edge():
+    # deliberately a single flat color: edge beams overlap at the block corners,
+    # and identical coplanar texels make that overlap invisible
+    return Image.new("RGBA", (16, 16), (94, 134, 150, 255))
+
+
 def draw_trophy_block():
     wood = hex_to_rgb("#8b6b43")
     dark = shade(wood, 0.6)
@@ -1505,6 +1561,8 @@ def gen_textures():
     draw_trophy_block().save(f"{tex_block}/trophy_stand.png")
     draw_aquarium_frame().save(f"{tex_block}/aquarium_frame.png")
     draw_aquarium_water().save(f"{tex_block}/aquarium_water.png")
+    draw_aquarium_glass().save(f"{tex_block}/aquarium_glass.png")
+    draw_aquarium_edge().save(f"{tex_block}/aquarium_edge.png")
     gui_dir = f"{ASSETS}/textures/gui"
     os.makedirs(gui_dir, exist_ok=True)
     draw_gui_fish().save(f"{gui_dir}/fish_icon.png")

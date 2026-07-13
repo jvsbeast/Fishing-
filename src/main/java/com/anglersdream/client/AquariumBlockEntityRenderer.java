@@ -3,6 +3,7 @@ package com.anglersdream.client;
 import com.anglersdream.block.AquariumBlock;
 import com.anglersdream.block.AquariumBlockEntity;
 import com.anglersdream.block.AquariumGroup;
+import com.anglersdream.fish.Variant;
 import com.anglersdream.item.FishItem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.OverlayTexture;
@@ -36,6 +37,7 @@ public class AquariumBlockEntityRenderer implements BlockEntityRenderer<Aquarium
         BlockPos cell;
         float yaw;
         long lastNanos = System.nanoTime();
+        long lastParticleTick = Long.MIN_VALUE;
         ItemStack tracked = ItemStack.EMPTY;
     }
 
@@ -106,6 +108,27 @@ public class AquariumBlockEntityRenderer implements BlockEntityRenderer<Aquarium
                 stack, ModelTransformationMode.FIXED, light, OverlayTexture.DEFAULT_UV,
                 matrices, vertexConsumers, be.getWorld(), slot);
         matrices.pop();
+
+        // Special-variant fish keep their ambient particles while on display,
+        // trailing from wherever the fish currently swims. Gated to one roll per
+        // game tick so the rate is frame-rate independent.
+        Variant variant = Variant.fromStack(stack);
+        if (variant != Variant.NORMAL && be.getWorld() != null) {
+            long tick = be.getWorld().getTime();
+            if (tick != swim.lastParticleTick) {
+                swim.lastParticleTick = tick;
+                if (random.nextInt(4) == 0) {
+                    var particle = variant.createParticle(random);
+                    if (particle != null) {
+                        be.getWorld().addParticle(particle,
+                                swim.pos.x + (random.nextDouble() - 0.5) * 0.3,
+                                swim.pos.y + bob + (random.nextDouble() - 0.5) * 0.3,
+                                swim.pos.z + (random.nextDouble() - 0.5) * 0.3,
+                                0.0, 0.01, 0.0);
+                    }
+                }
+            }
+        }
     }
 
     private void pickNewTarget(Swim swim, List<BlockPos> cells) {

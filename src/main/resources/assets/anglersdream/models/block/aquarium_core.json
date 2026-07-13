@@ -1,7 +1,7 @@
 {
   "textures": {
     "particle": "anglersdream:block/aquarium_frame",
-    "frame": "anglersdream:block/aquarium_frame"
+    "glass": "anglersdream:block/aquarium_glass"
   },
   "elements": [
     {
@@ -17,27 +17,27 @@
       ],
       "faces": {
         "north": {
-          "texture": "#frame",
+          "texture": "#glass",
           "cullface": "north"
         },
         "south": {
-          "texture": "#frame",
+          "texture": "#glass",
           "cullface": "south"
         },
         "east": {
-          "texture": "#frame",
+          "texture": "#glass",
           "cullface": "east"
         },
         "west": {
-          "texture": "#frame",
+          "texture": "#glass",
           "cullface": "west"
         },
         "up": {
-          "texture": "#frame",
+          "texture": "#glass",
           "cullface": "up"
         },
         "down": {
-          "texture": "#frame",
+          "texture": "#glass",
           "cullface": "down"
         }
       }

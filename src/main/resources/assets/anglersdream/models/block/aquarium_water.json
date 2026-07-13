@@ -1,0 +1,40 @@
+{
+  "textures": {
+    "particle": "anglersdream:block/aquarium_water",
+    "water": "anglersdream:block/aquarium_water"
+  },
+  "elements": [
+    {
+      "from": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "to": [
+        15.9,
+        15.9,
+        15.9
+      ],
+      "faces": {
+        "north": {
+          "texture": "#water"
+        },
+        "south": {
+          "texture": "#water"
+        },
+        "east": {
+          "texture": "#water"
+        },
+        "west": {
+          "texture": "#water"
+        },
+        "up": {
+          "texture": "#water"
+        },
+        "down": {
+          "texture": "#water"
+        }
+      }
+    }
+  ]
+}

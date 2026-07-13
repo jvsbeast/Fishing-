@@ -1,0 +1,40 @@
+{
+  "textures": {
+    "particle": "anglersdream:block/aquarium_frame",
+    "edge": "anglersdream:block/aquarium_edge"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        15,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        1
+      ],
+      "faces": {
+        "north": {
+          "texture": "#edge"
+        },
+        "south": {
+          "texture": "#edge"
+        },
+        "east": {
+          "texture": "#edge"
+        },
+        "west": {
+          "texture": "#edge"
+        },
+        "up": {
+          "texture": "#edge"
+        },
+        "down": {
+          "texture": "#edge"
+        }
+      }
+    }
+  ]
+}
