@@ -1302,15 +1302,17 @@ def draw_gui_treasure():
 # to the procedural sprite engine above.
 CUSTOM_ART = {
     "alligator_gar", "alpine_dace", "arapaima", "arctic_char", "arctic_cod",
-    "bluefin_tuna", "bogmaw", "butterflyfish", "cave_angler", "crystal_lanternfish",
-    "cutthroat_trout", "desert_pupfish", "elder_lungfish", "emerald_cichlid",
-    "feathered_serpentfish", "frostjaw_pike", "glacier_wraithfin", "glowtail",
-    "golden_trout", "greenland_halibut", "herring", "icefin", "leviathan_ray",
-    "lionfish", "mackerel", "mahi_mahi", "mirage_eel", "mycelial_ancient",
+    "bluefin_tuna", "bogmaw", "brown_trout", "bullhead_catfish", "butterflyfish",
+    "cave_angler", "crystal_lanternfish", "cutthroat_trout", "desert_pupfish",
+    "elder_lungfish", "emerald_cichlid", "feathered_serpentfish", "frostjaw_pike",
+    "glacier_wraithfin", "glowtail", "golden_sturgeon", "golden_trout",
+    "greenland_halibut", "herring", "icefin", "leviathan_ray", "lionfish",
+    "mackerel", "mahi_mahi", "mirage_eel", "mudskipper", "mycelial_ancient",
     "neon_tetra", "nile_perch", "parrotfish", "peacock_bass", "pharaohs_goldscale",
-    "sailfish", "sandskimmer", "sea_bass", "shroomfin", "skyplume_koi",
-    "snakehead", "sporegill", "stone_loach", "sunken_emperor", "swordfish",
-    "thunderfin", "tigerfish",
+    "piranha", "river_king_salmon", "river_perch", "sailfish", "sandskimmer",
+    "sea_bass", "shroomfin", "skyplume_koi", "snakehead", "sporegill",
+    "stone_loach", "sunken_emperor", "swordfish", "thunderfin", "tigerfish",
+    "zander",
 }
 
 
