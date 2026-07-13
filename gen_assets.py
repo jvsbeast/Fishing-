@@ -1297,10 +1297,29 @@ def draw_gui_treasure():
     return img
 
 
+# Species whose textures are hand-made 32x32 art checked into the repo.
+# gen_textures never regenerates these — only the remaining species fall back
+# to the procedural sprite engine above.
+CUSTOM_ART = {
+    "alligator_gar", "alpine_dace", "arapaima", "arctic_char", "arctic_cod",
+    "bluefin_tuna", "bogmaw", "butterflyfish", "cave_angler", "crystal_lanternfish",
+    "cutthroat_trout", "desert_pupfish", "elder_lungfish", "emerald_cichlid",
+    "feathered_serpentfish", "frostjaw_pike", "glacier_wraithfin", "glowtail",
+    "golden_trout", "greenland_halibut", "herring", "icefin", "leviathan_ray",
+    "lionfish", "mackerel", "mahi_mahi", "mirage_eel", "mycelial_ancient",
+    "neon_tetra", "nile_perch", "parrotfish", "peacock_bass", "pharaohs_goldscale",
+    "sailfish", "sandskimmer", "sea_bass", "shroomfin", "skyplume_koi",
+    "snakehead", "sporegill", "stone_loach", "sunken_emperor", "swordfish",
+    "thunderfin", "tigerfish",
+}
+
+
 def gen_textures():
     tex_item = f"{ASSETS}/textures/item"
     tex_block = f"{ASSETS}/textures/block"
     for sid, _n, _g, _r, _a, _b, _c, _d2, body, fin in SPECIES:
+        if sid in CUSTOM_ART:
+            continue
         draw_species(sid, body, fin).save(f"{tex_item}/{sid}.png")
     for rid, _n in RODS:
         draw_rod(rid, cast=False).save(f"{tex_item}/{rid}.png")
