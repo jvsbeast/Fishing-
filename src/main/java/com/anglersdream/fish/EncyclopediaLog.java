@@ -24,16 +24,16 @@ public record EncyclopediaLog(Set<String> caught, Map<String, Integer> groupCatc
     public static final EncyclopediaLog EMPTY = new EncyclopediaLog(Set.of(), Map.of());
 
     public static final Codec<EncyclopediaLog> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.listOf().xmap(HashSet::new, ArrayList::new)
+            Codec.STRING.listOf().<Set<String>>xmap(HashSet::new, ArrayList::new)
                     .optionalFieldOf("caught", Set.of()).forGetter(EncyclopediaLog::caught),
             Codec.unboundedMap(Codec.STRING, Codec.INT)
                     .optionalFieldOf("group_catches", Map.of()).forGetter(EncyclopediaLog::groupCatches)
     ).apply(instance, EncyclopediaLog::new));
 
-    public static final PacketCodec<ByteBuf, EncyclopediaLog> PACKET_CODEC = PacketCodec.tuple(
-            PacketCodecs.collection(HashSet::new, PacketCodecs.STRING), EncyclopediaLog::caught,
-            PacketCodecs.map(HashMap::new, PacketCodecs.STRING, PacketCodecs.VAR_INT), EncyclopediaLog::groupCatches,
-            EncyclopediaLog::new);
+    // NBT-backed packet codec derived from CODEC; sidesteps collection-generics
+    // mismatches between Set<String> record components and concrete HashSet codecs.
+    public static final PacketCodec<ByteBuf, EncyclopediaLog> PACKET_CODEC =
+            PacketCodecs.codec(CODEC);
 
     public EncyclopediaLog withCatch(FishSpecies species) {
         Set<String> newCaught = new HashSet<>(caught);
