@@ -164,6 +164,9 @@ def gen_lang():
         "message.anglersdream.perfect": "\u2728 Perfect catch! \u2728",
         "screen.anglersdream.minigame_title": "Reel it in!",
         "screen.anglersdream.perfect_indicator": "Perfect!",
+        "screen.anglersdream.encyclopedia_title": "Fish Encyclopedia",
+        "item.anglersdream.fish_encyclopedia": "Fish Encyclopedia",
+        "tooltip.anglersdream.encyclopedia_hint": "Right-click to open your catch log",
     }
     for sid, name, *_ in SPECIES:
         lang[f"item.anglersdream.{sid}"] = name
@@ -229,6 +232,9 @@ def gen_models():
     with open(f"{ASSETS}/models/item/trophy_stand.json", "w") as f:
         json.dump({"parent": "minecraft:item/generated",
                    "textures": {"layer0": "anglersdream:item/trophy_stand"}}, f, indent=2)
+    with open(f"{ASSETS}/models/item/fish_encyclopedia.json", "w") as f:
+        json.dump({"parent": "minecraft:item/generated",
+                   "textures": {"layer0": "anglersdream:item/fish_encyclopedia"}}, f, indent=2)
 
 
 # ---------------------------------------------------------------- recipes + loot
@@ -324,6 +330,13 @@ def gen_data():
                         {"item": "minecraft:obsidian"},
                         {"item": "minecraft:gold_ingot"}],
         "result": {"id": "anglersdream:prismatic_lure", "count": 2},
+    })
+    w("fish_encyclopedia", {
+        "type": "minecraft:crafting_shapeless",
+        "ingredients": [{"item": "minecraft:book"},
+                        {"item": "minecraft:fishing_rod"},
+                        {"item": "minecraft:ink_sac"}],
+        "result": {"id": "anglersdream:fish_encyclopedia"},
     })
 
     with open(f"{DATA}/loot_table/blocks/trophy_stand.json", "w") as f:
@@ -1324,6 +1337,49 @@ def draw_gui_treasure():
     return img
 
 
+def draw_fish_encyclopedia():
+    cover = (58, 42, 84)
+    cover_d = (38, 27, 58)
+    page = (232, 218, 182)
+    gold = (232, 195, 85)
+    ink = (90, 70, 40)
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([2, 1, 13, 14], fill=cover, outline=cover_d)
+    d.rectangle([4, 3, 12, 13], fill=page)
+    d.line([(2, 1), (2, 14)], fill=gold)
+    d.line([(3, 1), (3, 14)], fill=cover_d)
+    # a tiny fish glyph stamped on the open page (body + tail, facing right)
+    d.ellipse([6, 7, 10, 9], fill=ink)
+    d.polygon([(6, 8), (4, 6), (4, 10)], fill=ink)
+    d.point((9, 8), fill=gold)
+    return img
+
+
+def gen_silhouettes():
+    """Pre-baked dark silhouettes of every species' final texture, normalized to
+    32x32 so the encyclopedia screen can draw them all at one fixed size. Built
+    from whatever is on disk after gen_textures() runs, so it works for both
+    hand-made and procedurally generated art."""
+    tex_item = f"{ASSETS}/textures/item"
+    sil_dir = f"{ASSETS}/textures/gui/silhouette"
+    os.makedirs(sil_dir, exist_ok=True)
+    ink = (16, 18, 24)
+    for sid, *_ in SPECIES:
+        img = Image.open(f"{tex_item}/{sid}.png").convert("RGBA")
+        if img.size != (32, 32):
+            img = img.resize((32, 32), Image.NEAREST)
+        px = img.load()
+        out = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        opx = out.load()
+        for y in range(32):
+            for x in range(32):
+                a = px[x, y][3]
+                if a > 20:
+                    opx[x, y] = (ink[0], ink[1], ink[2], min(255, int(a * 0.92)))
+        out.save(f"{sil_dir}/{sid}.png")
+
+
 # Species whose textures are hand-made 32x32 art checked into the repo.
 # gen_textures never regenerates these — only the remaining species fall back
 # to the procedural sprite engine above.
@@ -1361,9 +1417,11 @@ def gen_textures():
     draw_gui_fish().save(f"{gui_dir}/fish_icon.png")
     draw_gui_treasure().save(f"{gui_dir}/treasure_icon.png")
     draw_trophy_item().save(f"{tex_item}/trophy_stand.png")
+    draw_fish_encyclopedia().save(f"{tex_item}/fish_encyclopedia.png")
     # mod icon: an upscaled legendary fish
     icon = draw_species("pharaohs_goldscale", "#e8b83a", "#2e6ba8").resize((128, 128), Image.NEAREST)
     icon.save(f"{ASSETS}/icon.png")
+    gen_silhouettes()
 
 
 if __name__ == "__main__":

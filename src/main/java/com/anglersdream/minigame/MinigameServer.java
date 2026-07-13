@@ -1,6 +1,7 @@
 package com.anglersdream.minigame;
 
 import com.anglersdream.AnglersDream;
+import com.anglersdream.fish.EncyclopediaLogHelper;
 import com.anglersdream.fish.FishData;
 import com.anglersdream.fish.FishSpecies;
 import com.anglersdream.fish.FishingLogic;
@@ -99,6 +100,10 @@ public final class MinigameServer {
         }
 
         ItemStack fish = pending.fish();
+
+        if (fish.getItem() instanceof FishItem caughtFish) {
+            EncyclopediaLogHelper.recordCatch(player, caughtFish.species);
+        }
 
         if (result.perfect() && fish.getItem() instanceof FishItem fishItem) {
             FishData d = fish.get(AnglersDream.FISH_DATA);

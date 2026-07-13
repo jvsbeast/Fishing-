@@ -2,10 +2,12 @@ package com.anglersdream;
 
 import com.anglersdream.block.TrophyBlock;
 import com.anglersdream.block.TrophyBlockEntity;
+import com.anglersdream.fish.EncyclopediaLog;
 import com.anglersdream.fish.FishData;
 import com.anglersdream.fish.FishRegistry;
 import com.anglersdream.fish.FishSpecies;
 import com.anglersdream.item.BaitItem;
+import com.anglersdream.item.FishEncyclopediaItem;
 import com.anglersdream.item.FishItem;
 import com.anglersdream.item.TieredRodItem;
 import com.anglersdream.minigame.MinigameServer;
@@ -49,6 +51,14 @@ public class AnglersDream implements ModInitializer {
                     .packetCodec(FishData.PACKET_CODEC)
                     .build());
 
+    /** Carries a Fish Encyclopedia's discovered species and per-biome catch counts. */
+    public static final ComponentType<EncyclopediaLog> ENCYCLOPEDIA_LOG = Registry.register(
+            Registries.DATA_COMPONENT_TYPE, id("encyclopedia_log"),
+            ComponentType.<EncyclopediaLog>builder()
+                    .codec(EncyclopediaLog.CODEC)
+                    .packetCodec(EncyclopediaLog.PACKET_CODEC)
+                    .build());
+
     public static final Map<FishSpecies, Item> FISH_ITEMS = new LinkedHashMap<>();
 
     private static final FoodComponent RAW_FISH_FOOD = new FoodComponent.Builder()
@@ -80,6 +90,8 @@ public class AnglersDream implements ModInitializer {
             .nonOpaque()
             .sounds(BlockSoundGroup.WOOD));
     public static final Item TROPHY_STAND_ITEM = new BlockItem(TROPHY_STAND, new Item.Settings());
+
+    public static final Item FISH_ENCYCLOPEDIA = new FishEncyclopediaItem(new Item.Settings().maxCount(1));
 
     public static BlockEntityType<TrophyBlockEntity> TROPHY_BLOCK_ENTITY;
 
@@ -116,6 +128,8 @@ public class AnglersDream implements ModInitializer {
         Registry.register(Registries.BLOCK, id("trophy_stand"), TROPHY_STAND);
         Registry.register(Registries.ITEM, id("trophy_stand"), TROPHY_STAND_ITEM);
 
+        Registry.register(Registries.ITEM, id("fish_encyclopedia"), FISH_ENCYCLOPEDIA);
+
         TROPHY_BLOCK_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE, id("trophy_stand"),
                 FabricBlockEntityTypeBuilder.create(TrophyBlockEntity::new, TROPHY_STAND).build());
 
@@ -137,6 +151,7 @@ public class AnglersDream implements ModInitializer {
             entries.add(ROYAL_BAIT);
             entries.add(PRISMATIC_LURE);
             entries.add(TROPHY_STAND_ITEM);
+            entries.add(FISH_ENCYCLOPEDIA);
             for (Item fish : FISH_ITEMS.values()) {
                 entries.add(fish);
             }

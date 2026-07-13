@@ -6,6 +6,7 @@ import com.anglersdream.network.StartMinigamePayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -19,6 +20,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 
@@ -40,6 +42,17 @@ public class AnglersDreamClient implements ClientModInitializer {
         registerCastPredicate(AnglersDream.PRISMATIC_ROD);
         registerCastPredicate(AnglersDream.POSEIDONS_ROD);
         registerCastPredicate(AnglersDream.CELESTIAL_ROD);
+
+        // Opening the encyclopedia is purely a client-side read of the held stack's
+        // component data — it's already synced like any other item data, no packet needed.
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            ItemStack stack = player.getStackInHand(hand);
+            if (world.isClient && stack.isOf(AnglersDream.FISH_ENCYCLOPEDIA)) {
+                MinecraftClient.getInstance().setScreen(new FishEncyclopediaScreen(stack));
+                return TypedActionResult.success(stack, true);
+            }
+            return TypedActionResult.pass(stack);
+        });
     }
 
     /**

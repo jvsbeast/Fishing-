@@ -1,7 +1,9 @@
 package com.anglersdream.mixin;
 
 import com.anglersdream.AnglersDream;
+import com.anglersdream.fish.EncyclopediaLogHelper;
 import com.anglersdream.fish.FishingLogic;
+import com.anglersdream.item.FishItem;
 import com.anglersdream.minigame.MinigameServer;
 import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.entity.Entity;
@@ -72,6 +74,10 @@ public abstract class FishingBobberEntityMixin {
         if (isFish && !player.isCreative() && player instanceof ServerPlayerEntity serverPlayer) {
             MinigameServer.begin(serverPlayer, world, self.getBlockPos(), usedItem, loot.get(0));
         } else {
+            if (isFish && player instanceof ServerPlayerEntity serverPlayer
+                    && loot.get(0).getItem() instanceof FishItem caughtFish) {
+                EncyclopediaLogHelper.recordCatch(serverPlayer, caughtFish.species);
+            }
             MinigameServer.deliver(world, self.getX(), self.getY(), self.getZ(), player, loot);
             player.incrementStat(Stats.FISH_CAUGHT);
         }

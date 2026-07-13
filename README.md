@@ -61,6 +61,18 @@ improving everything at once.)
 - Royal Bait — 3 worm bait + 2 gold nuggets (luck + size, no variant: +3 luck, +35% size)
 - Prismatic Lure — 4 worm bait + diamond + obsidian + gold ingot (the best bait overall: +5 luck, +75% size, ×4 variants)
 
+**Fish Encyclopedia**
+- Craftable catch log: book + fishing rod + ink sac. Right-click to open it.
+- One themed page per biome group, colored and bordered to match that biome's water
+  (icy pale blue for Frozen, deep magenta for Mushroom Fields, glowing purple for Caves...).
+  Undiscovered species show as a dark silhouette of their real shape plus their rarity;
+  catching one fills in its true icon and name for good.
+- Each page tracks total fish caught in that biome, not just species discovered.
+- Catch every species in a biome and its page border turns gold.
+- The log lives on the book itself (a data component, like a written book's pages) and
+  updates automatically for any copy of the encyclopedia in your inventory when you land
+  a catch — it doesn't need to be in your hand.
+
 Vanilla junk/treasure fishing loot (enchanted books, saddles, etc.) is preserved.
 Epic+, Legendary and Prismatic catches trigger a level-up chime and an action-bar announcement.
 
