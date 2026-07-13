@@ -1,5 +1,8 @@
 package com.anglersdream;
 
+import com.anglersdream.block.AquariumActions;
+import com.anglersdream.block.AquariumBlock;
+import com.anglersdream.block.AquariumBlockEntity;
 import com.anglersdream.block.TrophyBlock;
 import com.anglersdream.block.TrophyBlockEntity;
 import com.anglersdream.fish.EncyclopediaLog;
@@ -11,6 +14,7 @@ import com.anglersdream.item.FishEncyclopediaItem;
 import com.anglersdream.item.FishItem;
 import com.anglersdream.item.TieredRodItem;
 import com.anglersdream.minigame.MinigameServer;
+import com.anglersdream.network.AquariumActionPayload;
 import com.anglersdream.network.MinigameResultPayload;
 import com.anglersdream.network.StartMinigamePayload;
 import net.fabricmc.api.ModInitializer;
@@ -93,7 +97,14 @@ public class AnglersDream implements ModInitializer {
 
     public static final Item FISH_ENCYCLOPEDIA = new FishEncyclopediaItem(new Item.Settings().maxCount(1));
 
+    public static final Block AQUARIUM = new AquariumBlock(AbstractBlock.Settings.create()
+            .strength(0.6f)
+            .nonOpaque()
+            .sounds(BlockSoundGroup.GLASS));
+    public static final Item AQUARIUM_ITEM = new BlockItem(AQUARIUM, new Item.Settings());
+
     public static BlockEntityType<TrophyBlockEntity> TROPHY_BLOCK_ENTITY;
+    public static BlockEntityType<AquariumBlockEntity> AQUARIUM_BLOCK_ENTITY;
 
     public static final RegistryKey<ItemGroup> ITEM_GROUP_KEY =
             RegistryKey.of(RegistryKeys.ITEM_GROUP, id("main"));
@@ -105,6 +116,11 @@ public class AnglersDream implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(MinigameResultPayload.ID, MinigameResultPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(MinigameResultPayload.ID,
                 (payload, context) -> MinigameServer.handleResult(context.player(), payload));
+
+        // Aquarium management networking
+        PayloadTypeRegistry.playC2S().register(AquariumActionPayload.ID, AquariumActionPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(AquariumActionPayload.ID,
+                (payload, context) -> AquariumActions.handle(context.player(), payload));
 
         // Fish items: one item per species so each gets its own sprite.
         for (FishSpecies species : FishRegistry.ALL) {
@@ -133,6 +149,11 @@ public class AnglersDream implements ModInitializer {
         TROPHY_BLOCK_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE, id("trophy_stand"),
                 FabricBlockEntityTypeBuilder.create(TrophyBlockEntity::new, TROPHY_STAND).build());
 
+        Registry.register(Registries.BLOCK, id("aquarium"), AQUARIUM);
+        Registry.register(Registries.ITEM, id("aquarium"), AQUARIUM_ITEM);
+        AQUARIUM_BLOCK_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE, id("aquarium"),
+                FabricBlockEntityTypeBuilder.create(AquariumBlockEntity::new, AQUARIUM).build());
+
         ItemGroup group = FabricItemGroup.builder()
                 .icon(() -> new ItemStack(CELESTIAL_ROD))
                 .displayName(Text.translatable("itemgroup.anglersdream"))
@@ -151,6 +172,7 @@ public class AnglersDream implements ModInitializer {
             entries.add(ROYAL_BAIT);
             entries.add(PRISMATIC_LURE);
             entries.add(TROPHY_STAND_ITEM);
+            entries.add(AQUARIUM_ITEM);
             entries.add(FISH_ENCYCLOPEDIA);
             for (Item fish : FISH_ITEMS.values()) {
                 entries.add(fish);

@@ -3,6 +3,10 @@ package com.anglersdream.client;
 import com.anglersdream.AnglersDream;
 import com.anglersdream.block.TrophyBlockEntity;
 import com.anglersdream.network.StartMinigamePayload;
+import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.util.ActionResult;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -31,6 +35,20 @@ public class AnglersDreamClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         BlockEntityRendererFactories.register(AnglersDream.TROPHY_BLOCK_ENTITY, TrophyBlockEntityRenderer::new);
+        BlockEntityRendererFactories.register(AnglersDream.AQUARIUM_BLOCK_ENTITY, AquariumBlockEntityRenderer::new);
+        BlockRenderLayerMap.INSTANCE.putBlock(AnglersDream.AQUARIUM, RenderLayer.getTranslucent());
+
+        // Right-clicking any aquarium block opens the shared management screen. The
+        // block consumes the interaction server-side; the screen reads live synced
+        // block entity state, so no open packet is needed.
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (world.isClient && !player.isSneaking()
+                    && world.getBlockState(hitResult.getBlockPos()).isOf(AnglersDream.AQUARIUM)) {
+                MinecraftClient.getInstance().setScreen(new AquariumScreen(hitResult.getBlockPos()));
+                return ActionResult.SUCCESS;
+            }
+            return ActionResult.PASS;
+        });
 
         HudRenderCallback.EVENT.register(AnglersDreamClient::renderTrophyTooltip);
 

@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "filled=false": {
+      "model": "anglersdream:block/aquarium"
+    },
+    "filled=true": {
+      "model": "anglersdream:block/aquarium_filled"
+    }
+  }
+}

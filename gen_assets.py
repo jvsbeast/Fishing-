@@ -145,6 +145,19 @@ def gen_lang():
     lang = {
         "itemgroup.anglersdream": "Angler's Dream",
         "block.anglersdream.trophy_stand": "Trophy Stand",
+        "block.anglersdream.aquarium": "Aquarium",
+        "screen.anglersdream.aquarium_title": "Aquarium",
+        "screen.anglersdream.aquarium_blocks": "%s blocks",
+        "screen.anglersdream.aquarium_fish": "Fish: %s / %s",
+        "screen.anglersdream.aquarium_water_full": "Water: Filled",
+        "screen.anglersdream.aquarium_water_empty": "Water: Empty",
+        "screen.anglersdream.aquarium_water_partial": "Water: %s / %s",
+        "screen.anglersdream.aquarium_fill": "Fill",
+        "screen.anglersdream.aquarium_drain": "Drain",
+        "screen.anglersdream.aquarium_tank_label": "In the tank (click: remove · right-click: show/hide)",
+        "screen.anglersdream.aquarium_inv_label": "Your fish (click to add)",
+        "screen.anglersdream.aquarium_no_water": "Fill the tank with a water bucket so your fish can swim",
+        "screen.anglersdream.aquarium_hidden": "Hidden from display",
         "rarity.anglersdream.common": "Common",
         "rarity.anglersdream.uncommon": "Uncommon",
         "rarity.anglersdream.rare": "Rare",
@@ -232,6 +245,39 @@ def gen_models():
     with open(f"{ASSETS}/models/item/trophy_stand.json", "w") as f:
         json.dump({"parent": "minecraft:item/generated",
                    "textures": {"layer0": "anglersdream:item/trophy_stand"}}, f, indent=2)
+
+    # aquarium: glass frame cube, plus a filled variant with an inner water cube
+    all_faces = lambda tex, cull: {
+        face: ({"texture": tex, "cullface": face} if cull else {"texture": tex})
+        for face in ("north", "south", "east", "west", "up", "down")
+    }
+    aquarium_frame_element = {
+        "from": [0, 0, 0], "to": [16, 16, 16],
+        "faces": all_faces("#frame", True),
+    }
+    with open(f"{ASSETS}/models/block/aquarium.json", "w") as f:
+        json.dump({
+            "textures": {"particle": "anglersdream:block/aquarium_frame",
+                         "frame": "anglersdream:block/aquarium_frame"},
+            "elements": [aquarium_frame_element],
+        }, f, indent=2)
+    with open(f"{ASSETS}/models/block/aquarium_filled.json", "w") as f:
+        json.dump({
+            "textures": {"particle": "anglersdream:block/aquarium_frame",
+                         "frame": "anglersdream:block/aquarium_frame",
+                         "water": "anglersdream:block/aquarium_water"},
+            "elements": [
+                {"from": [1, 1, 1], "to": [15, 15, 15], "faces": all_faces("#water", False)},
+                aquarium_frame_element,
+            ],
+        }, f, indent=2)
+    with open(f"{ASSETS}/blockstates/aquarium.json", "w") as f:
+        json.dump({"variants": {
+            "filled=false": {"model": "anglersdream:block/aquarium"},
+            "filled=true": {"model": "anglersdream:block/aquarium_filled"},
+        }}, f, indent=2)
+    with open(f"{ASSETS}/models/item/aquarium.json", "w") as f:
+        json.dump({"parent": "anglersdream:block/aquarium"}, f, indent=2)
     with open(f"{ASSETS}/models/item/fish_encyclopedia.json", "w") as f:
         json.dump({"parent": "minecraft:item/generated",
                    "textures": {"layer0": "anglersdream:item/fish_encyclopedia"}}, f, indent=2)
@@ -339,15 +385,34 @@ def gen_data():
         "result": {"id": "anglersdream:fish_encyclopedia"},
     })
 
-    with open(f"{DATA}/loot_table/blocks/trophy_stand.json", "w") as f:
+    # Any fish (all mod species + vanilla) counts for aquarium crafting and storage.
+    tags_dir = f"{DATA}/tags/item"
+    os.makedirs(tags_dir, exist_ok=True)
+    with open(f"{tags_dir}/fishes.json", "w") as f:
         json.dump({
-            "type": "minecraft:block",
-            "pools": [{
-                "rolls": 1,
-                "entries": [{"type": "minecraft:item", "name": "anglersdream:trophy_stand"}],
-                "conditions": [{"condition": "minecraft:survives_explosion"}],
-            }],
+            "replace": False,
+            "values": [f"anglersdream:{sid}" for sid, *_ in SPECIES]
+                      + ["minecraft:cod", "minecraft:salmon",
+                         "minecraft:tropical_fish", "minecraft:pufferfish"],
         }, f, indent=2)
+
+    w("aquarium", {
+        "type": "minecraft:crafting_shaped",
+        "pattern": ["GGG", "GFG", "GGG"],
+        "key": {"G": {"item": "minecraft:glass_pane"}, "F": {"tag": "anglersdream:fishes"}},
+        "result": {"id": "anglersdream:aquarium", "count": 1},
+    })
+
+    for block in ("trophy_stand", "aquarium"):
+        with open(f"{DATA}/loot_table/blocks/{block}.json", "w") as f:
+            json.dump({
+                "type": "minecraft:block",
+                "pools": [{
+                    "rolls": 1,
+                    "entries": [{"type": "minecraft:item", "name": f"anglersdream:{block}"}],
+                    "conditions": [{"condition": "minecraft:survives_explosion"}],
+                }],
+            }, f, indent=2)
 
 
 # ---------------------------------------------------------------- textures
@@ -1288,6 +1353,32 @@ def draw_bait(hex_color):
     return img
 
 
+def draw_aquarium_frame():
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    frame = (94, 134, 150, 255)
+    frame_l = (168, 214, 228, 255)
+    rivet = (58, 86, 100, 255)
+    d.rectangle([0, 0, 15, 15], fill=(205, 232, 242, 36))   # faint glass
+    d.rectangle([0, 0, 15, 15], outline=frame)
+    d.rectangle([1, 1, 14, 14], outline=frame_l)
+    for x, y in ((1, 1), (14, 1), (1, 14), (14, 14)):
+        d.point((x, y), fill=rivet)
+    d.line([(3, 6), (6, 3)], fill=(255, 255, 255, 90))       # glass glint
+    d.line([(4, 8), (8, 4)], fill=(255, 255, 255, 55))
+    return img
+
+
+def draw_aquarium_water():
+    img = Image.new("RGBA", (16, 16), (62, 128, 198, 150))
+    d = ImageDraw.Draw(img)
+    for y in (3, 8, 13):
+        for x in range(0, 16, 4):
+            d.point(((x + y) % 16, y), fill=(122, 182, 230, 170))
+            d.point(((x + y + 1) % 16, y), fill=(152, 206, 240, 160))
+    return img
+
+
 def draw_trophy_block():
     wood = hex_to_rgb("#8b6b43")
     dark = shade(wood, 0.6)
@@ -1412,6 +1503,8 @@ def gen_textures():
     for bid, _n, c in BAITS:
         draw_bait(c).save(f"{tex_item}/{bid}.png")
     draw_trophy_block().save(f"{tex_block}/trophy_stand.png")
+    draw_aquarium_frame().save(f"{tex_block}/aquarium_frame.png")
+    draw_aquarium_water().save(f"{tex_block}/aquarium_water.png")
     gui_dir = f"{ASSETS}/textures/gui"
     os.makedirs(gui_dir, exist_ok=True)
     draw_gui_fish().save(f"{gui_dir}/fish_icon.png")

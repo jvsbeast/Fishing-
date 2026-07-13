@@ -43,6 +43,18 @@ and craftable baits.
 - Look at a mounted fish and its full stats (name, rarity, variant, length, weight)
   appear under the crosshair.
 
+**Aquarium**
+- Crafted from any fish (mod or vanilla) surrounded by 8 glass panes. Place blocks
+  next to each other to build a tank of any size — every connected block acts as
+  one shared aquarium.
+- Right-click any block of the tank to open the management window: Fill / Drain the
+  whole tank with a water bucket (one bucket does the entire tank, and you get it
+  back), click your fish to add them (4 per block), left-click a tank fish to take
+  it out, right-click one to show or hide it.
+- Displayed fish swim through the whole connected tank at their **true size**,
+  wandering cell to cell — they never clip out of an L-shaped build. Breaking a
+  block drops its fish unharmed, stats intact.
+
 **Rods** (all enchantable, work with Lure / Luck of the Sea; every recipe starts
 from a plain vanilla fishing rod plus rarer ingredients as the tiers climb)
 - Reinforced Rod — fishing rod + 2 iron ingots (+1 luck, +15% size, 128 durability)
