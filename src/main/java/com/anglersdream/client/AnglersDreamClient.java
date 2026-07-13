@@ -1,21 +1,36 @@
 package com.anglersdream.client;
 
 import com.anglersdream.AnglersDream;
+import com.anglersdream.block.TrophyBlockEntity;
 import com.anglersdream.network.StartMinigamePayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.item.ModelPredicateProviderRegistry;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.FishingRodItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+
+import java.util.List;
 
 public class AnglersDreamClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
         BlockEntityRendererFactories.register(AnglersDream.TROPHY_BLOCK_ENTITY, TrophyBlockEntityRenderer::new);
+
+        HudRenderCallback.EVENT.register(AnglersDreamClient::renderTrophyTooltip);
 
         ClientPlayNetworking.registerGlobalReceiver(StartMinigamePayload.ID, (payload, context) ->
                 context.client().execute(() ->
@@ -25,6 +40,39 @@ public class AnglersDreamClient implements ClientModInitializer {
         registerCastPredicate(AnglersDream.PRISMATIC_ROD);
         registerCastPredicate(AnglersDream.POSEIDONS_ROD);
         registerCastPredicate(AnglersDream.CELESTIAL_ROD);
+    }
+
+    /**
+     * When the crosshair rests on a trophy stand with a mounted fish, draw the fish's
+     * full item tooltip (name, rarity, variant, length, weight) just below the crosshair.
+     */
+    private static void renderTrophyTooltip(DrawContext context, RenderTickCounter tickCounter) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null || client.options.hudHidden) return;
+        if (!(client.crosshairTarget instanceof BlockHitResult hit)
+                || client.crosshairTarget.getType() != HitResult.Type.BLOCK) return;
+        if (!(client.world.getBlockEntity(hit.getBlockPos()) instanceof TrophyBlockEntity be)) return;
+
+        ItemStack fish = be.getFish();
+        if (fish.isEmpty()) return;
+
+        // getTooltip returns the styled name plus every tooltip line the item shows.
+        List<Text> lines = fish.getTooltip(
+                Item.TooltipContext.create(client.world), client.player, TooltipType.BASIC);
+        if (lines.isEmpty()) return;
+
+        TextRenderer tr = client.textRenderer;
+        int cx = context.getScaledWindowWidth() / 2;
+        int y = context.getScaledWindowHeight() / 2 + 16;
+
+        int w = 0;
+        for (Text line : lines) w = Math.max(w, tr.getWidth(line));
+        context.fill(cx - w / 2 - 5, y - 4, cx + w / 2 + 5, y + lines.size() * 10 + 2, 0xA0100E18);
+
+        for (Text line : lines) {
+            context.drawTextWithShadow(tr, line, cx - tr.getWidth(line) / 2, y, 0xFFFFFFFF);
+            y += 10;
+        }
     }
 
     /** Mirrors vanilla's "cast" model predicate so custom rods swap to their cast texture. */

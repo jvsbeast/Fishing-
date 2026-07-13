@@ -13,9 +13,13 @@ and craftable baits.
   (e.g. Leviathan Ray, Pharaoh's Goldscale, Skyplume Koi, Feathered Serpentfish).
 - Each fish rolls an individual **length (cm)** and **weight (kg)** shown in its tooltip.
   The distribution is heavily skewed, so large, heavy specimens are genuinely rare.
-- **Variants:** every species can roll Shiny (5%), Golden (1.5%), or Prismatic (0.4%).
-  Variant fish glint, get a colored name prefix, and emit ambient particles as dropped
-  items and while displayed on trophy stands — prismatic fish shimmer with rainbow dust.
+- **Trophy-class giants:** a rare roll (~2%, slightly more with size gear) overshoots the
+  species' normal maximum — up to 2.5x length and far heavier.
+- **Variants:** every species can roll Shiny (1.2%), Golden (0.3%), or Prismatic (0.06%).
+  Gear multiplies these odds with square-root diminishing returns, so even a fully
+  stacked setup only ~5x's them — a prismatic catch stays rare (~1 in 330 at best).
+  Variant fish glint and get a colored name prefix; Golden and Prismatic also emit
+  ambient particles (prismatic = rainbow dust) as drops and on trophy stands.
 
 **Reel-In Minigame (Stardew Valley style)**
 - When a fish bites and you reel in, a minigame opens: hold **left click** (or **space**)
@@ -32,10 +36,12 @@ and craftable baits.
 - Press ESC (or fail) and the fish gets away — bait is still spent, as nature intended.
 
 **Trophy Stand**
-- Craftable wall plaque (8 sticks around any plank). Right-click with a fish to mount it,
+- Craftable wall medallion (8 sticks around any plank). Right-click with a fish to mount it,
   right-click again to take it back; breaking the stand drops the fish.
-- Mounted fish render at their **true size**: a 30 cm perch is a little plaque decoration,
-  a 5 m Leviathan Ray dominates the wall.
+- The medallion itself is small — the mounted fish covers it. Fish render at their
+  **true size**: a 30 cm perch is a modest wall piece, a giant Leviathan Ray dominates it.
+- Look at a mounted fish and its full stats (name, rarity, variant, length, weight)
+  appear under the crosshair.
 
 **Rods** (all enchantable, work with Lure / Luck of the Sea; every recipe starts
 from a plain vanilla fishing rod plus rarer ingredients as the tiers climb)

@@ -17,9 +17,9 @@ import org.joml.Vector3f;
 
 public enum Variant implements StringIdentifiable {
     NORMAL("normal", 0.0, null),
-    SHINY("shiny", 0.050, ParticleTypes.GLOW),
-    GOLDEN("golden", 0.015, ParticleTypes.WAX_ON),
-    PRISMATIC("prismatic", 0.004, ParticleTypes.NAUTILUS);
+    SHINY("shiny", 0.012, null),               // enchant glint only, no particles
+    GOLDEN("golden", 0.003, ParticleTypes.WAX_ON),
+    PRISMATIC("prismatic", 0.0006, ParticleTypes.NAUTILUS);
 
     public static final Codec<Variant> CODEC = StringIdentifiable.createCodec(Variant::values);
     public static final PacketCodec<ByteBuf, Variant> PACKET_CODEC =
@@ -72,14 +72,20 @@ public enum Variant implements StringIdentifiable {
         return data == null ? NORMAL : data.variant();
     }
 
-    /** Rolls a variant. {@code multiplier} scales the chance of every special variant. */
+    /**
+     * Rolls a variant. {@code multiplier} scales the chance of every special variant,
+     * but with square-root diminishing returns so even fully stacked gear (Celestial
+     * Rod x Prismatic Lure x Luck of the Sea III, ~25x) only multiplies odds ~5x —
+     * a prismatic catch stays rare no matter the setup (~1 in 330 at best).
+     */
     public static Variant roll(Random random, double multiplier) {
+        double m = Math.sqrt(Math.max(1.0, multiplier));
         double r = random.nextDouble();
-        double p = PRISMATIC.baseChance * multiplier;
+        double p = PRISMATIC.baseChance * m;
         if (r < p) return PRISMATIC;
-        double g = p + GOLDEN.baseChance * multiplier;
+        double g = p + GOLDEN.baseChance * m;
         if (r < g) return GOLDEN;
-        double s = g + SHINY.baseChance * multiplier;
+        double s = g + SHINY.baseChance * m;
         if (r < s) return SHINY;
         return NORMAL;
     }

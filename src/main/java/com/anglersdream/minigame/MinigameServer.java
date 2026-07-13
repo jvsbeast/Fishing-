@@ -103,7 +103,8 @@ public final class MinigameServer {
         if (result.perfect() && fish.getItem() instanceof FishItem fishItem) {
             FishData d = fish.get(AnglersDream.FISH_DATA);
             if (d != null) {
-                float size = Math.min(fishItem.species.maxSize() * 1.05f, d.sizeCm() * 1.1f);
+                // Cap matches the trophy-class giant ceiling so a perfect catch never shrinks one.
+                float size = Math.min(fishItem.species.maxSize() * 2.5f, d.sizeCm() * 1.1f);
                 size = Math.round(size * 10.0f) / 10.0f;
                 float weight = Math.round(d.weightKg() * 1.15f * 100.0f) / 100.0f;
                 fish.set(AnglersDream.FISH_DATA, new FishData(size, weight, d.variant()));

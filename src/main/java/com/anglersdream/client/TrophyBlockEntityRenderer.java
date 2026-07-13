@@ -29,9 +29,11 @@ public class TrophyBlockEntityRenderer implements BlockEntityRenderer<TrophyBloc
 
         // "True size" scaling: a FIXED-mode item sprite is ~0.5 blocks wide,
         // so scale = (length in metres) / 0.5 makes the sprite span the fish's real length.
+        // Minimum keeps even tiny fish larger than the 6px medallion behind them;
+        // maximum accommodates trophy-class giants.
         float sizeCm = FishItem.getSizeCm(fish);
         float scale = sizeCm > 0
-                ? MathHelper.clamp((sizeCm / 100.0f) / 0.5f, 0.35f, 5.0f)
+                ? MathHelper.clamp((sizeCm / 100.0f) / 0.5f, 0.8f, 8.0f)
                 : 1.0f;
 
         matrices.push();

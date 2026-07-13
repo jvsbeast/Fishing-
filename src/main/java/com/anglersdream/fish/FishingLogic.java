@@ -79,6 +79,15 @@ public final class FishingLogic {
         float weight = (float) Math.max(species.minWeight(),
                 species.minWeight() + (species.maxWeight() - species.minWeight()) * wt);
 
+        // Trophy-class giants: a rare roll lets a fish overshoot its species' normal
+        // maximum, up to 2.5x length (and correspondingly heavier). Size gear makes
+        // giants a little more frequent and a little bigger.
+        if (random.nextDouble() < 0.02 + 0.02 * sizeBonus) {
+            double giant = 1.15 + random.nextDouble() * (0.6 + 0.5 * sizeBonus);
+            size = (float) Math.min(species.maxSize() * 2.5, size * giant);
+            weight = (float) Math.min(species.maxWeight() * 4.0, weight * Math.pow(giant, 1.8));
+        }
+
         Variant variant = Variant.roll(random, rodVariant * baitVariant * (1.0 + 0.10 * rarityLuck));
 
         ItemStack stack = new ItemStack(AnglersDream.FISH_ITEMS.get(species));

@@ -195,15 +195,16 @@ def gen_models():
             json.dump({"parent": "minecraft:item/generated",
                        "textures": {"layer0": f"anglersdream:item/{bid}"}}, f, indent=2)
 
-    # trophy stand block model (thin plaque against the wall, base = facing north)
+    # trophy stand block model (small wall medallion the mounted fish covers,
+    # base = facing north)
     block_model = {
         "textures": {
             "particle": "anglersdream:block/trophy_stand",
             "plaque": "anglersdream:block/trophy_stand",
         },
         "elements": [{
-            "from": [1, 1, 15],
-            "to": [15, 15, 16],
+            "from": [5, 5, 15],
+            "to": [11, 11, 16],
             "faces": {
                 "north": {"texture": "#plaque"},
                 "south": {"texture": "#plaque"},

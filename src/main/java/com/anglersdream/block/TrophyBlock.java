@@ -42,10 +42,11 @@ public class TrophyBlock extends HorizontalFacingBlock implements BlockEntityPro
     public static final MapCodec<TrophyBlock> CODEC = createCodec(TrophyBlock::new);
     public static final DirectionProperty FACING = HorizontalFacingBlock.FACING;
 
-    private static final VoxelShape NORTH_SHAPE = Block.createCuboidShape(1, 1, 14, 15, 15, 16);
-    private static final VoxelShape SOUTH_SHAPE = Block.createCuboidShape(1, 1, 0, 15, 15, 2);
-    private static final VoxelShape EAST_SHAPE = Block.createCuboidShape(0, 1, 1, 2, 15, 15);
-    private static final VoxelShape WEST_SHAPE = Block.createCuboidShape(14, 1, 1, 16, 15, 15);
+    // A small 6x6 medallion — the mounted fish is meant to cover it entirely.
+    private static final VoxelShape NORTH_SHAPE = Block.createCuboidShape(5, 5, 14, 11, 11, 16);
+    private static final VoxelShape SOUTH_SHAPE = Block.createCuboidShape(5, 5, 0, 11, 11, 2);
+    private static final VoxelShape EAST_SHAPE = Block.createCuboidShape(0, 5, 5, 2, 11, 11);
+    private static final VoxelShape WEST_SHAPE = Block.createCuboidShape(14, 5, 5, 16, 11, 11);
 
     public TrophyBlock(Settings settings) {
         super(settings);
