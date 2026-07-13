@@ -2,13 +2,25 @@
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
     {
-      "item": "anglersdream:glow_bait"
+      "item": "anglersdream:worm_bait"
     },
     {
-      "item": "minecraft:amethyst_shard"
+      "item": "anglersdream:worm_bait"
     },
     {
-      "item": "minecraft:prismarine_crystals"
+      "item": "anglersdream:worm_bait"
+    },
+    {
+      "item": "anglersdream:worm_bait"
+    },
+    {
+      "item": "minecraft:diamond"
+    },
+    {
+      "item": "minecraft:obsidian"
+    },
+    {
+      "item": "minecraft:gold_ingot"
     }
   ],
   "result": {

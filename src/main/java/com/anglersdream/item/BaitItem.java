@@ -27,9 +27,13 @@ public class BaitItem extends Item {
     @Override
     public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
         tooltip.add(Text.translatable("tooltip.anglersdream.bait_hint").formatted(Formatting.DARK_GRAY, Formatting.ITALIC));
-        tooltip.add(Text.translatable("tooltip.anglersdream.luck", rarityLuck).formatted(Formatting.AQUA));
-        tooltip.add(Text.translatable("tooltip.anglersdream.size_bonus",
-                Math.round(sizeBonus * 100)).formatted(Formatting.GREEN));
+        if (rarityLuck > 0) {
+            tooltip.add(Text.translatable("tooltip.anglersdream.luck", rarityLuck).formatted(Formatting.AQUA));
+        }
+        if (sizeBonus > 0.0) {
+            tooltip.add(Text.translatable("tooltip.anglersdream.size_bonus",
+                    Math.round(sizeBonus * 100)).formatted(Formatting.GREEN));
+        }
         if (variantMultiplier > 1.0) {
             tooltip.add(Text.translatable("tooltip.anglersdream.variant_bonus",
                     String.format(java.util.Locale.ROOT, "%.1f", variantMultiplier)).formatted(Formatting.LIGHT_PURPLE));

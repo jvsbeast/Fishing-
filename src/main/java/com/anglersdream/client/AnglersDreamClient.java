@@ -63,7 +63,12 @@ public class AnglersDreamClient implements ClientModInitializer {
 
         TextRenderer tr = client.textRenderer;
         int cx = context.getScaledWindowWidth() / 2;
-        int y = context.getScaledWindowHeight() / 2 + 16;
+
+        // Anchor to the bottom of the screen, clearing the hotbar (22px tall + 4px
+        // margin) plus the exp bar row above it, instead of floating over the crosshair.
+        int boxHeight = lines.size() * 10 + 6;
+        int boxBottom = context.getScaledWindowHeight() - 29;
+        int y = boxBottom - boxHeight + 4;
 
         int w = 0;
         for (Text line : lines) w = Math.max(w, tr.getWidth(line));

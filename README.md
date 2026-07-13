@@ -50,9 +50,16 @@ from a plain vanilla fishing rod plus rarer ingredients as the tiers climb)
 - Poseidon's Rod — fishing rod + heart of the sea + nautilus shell + diamond (+3 luck, +60% size, ×2.5 variants, 1024 durability)
 - Celestial Rod — fishing rod + nether star + dragon's breath + echo shard (+4 luck, +90% size, ×4 variants, 2048 durability)
 
-**Baits** (consumed automatically on each catch; offhand is checked first)
-- Worm Bait (dirt + seeds), Glow Bait, Royal Bait, Prismatic Lure — increasing rarity luck,
-  size bonus, and variant chance.
+**Baits** (consumed automatically on each catch; offhand is checked first. Worm
+Bait is the base ingredient for every other bait, so each recipe needs more of
+it as the tier climbs. Each specializes in what it boosts rather than
+improving everything at once.)
+- Worm Bait — 1 rotten flesh (weak all-rounder: +1 luck, +8% size)
+- Chum Bait — worm bait + pufferfish + bone meal (**size only**: +55% size)
+- Lucky Bait — 2 worm bait + rabbit's foot (**luck only**: +4 luck)
+- Glimmer Bait — 2 worm bait + glow ink sac + phantom membrane (**variant only**: ×3 variants)
+- Royal Bait — 3 worm bait + 2 gold nuggets (luck + size, no variant: +3 luck, +35% size)
+- Prismatic Lure — 4 worm bait + diamond + obsidian + gold ingot (the best bait overall: +5 luck, +75% size, ×4 variants)
 
 Vanilla junk/treasure fishing loot (enchanted books, saddles, etc.) is preserved.
 Epic+, Legendary and Prismatic catches trigger a level-up chime and an action-bar announcement.

@@ -82,7 +82,9 @@ RODS = [("reinforced_rod", "Reinforced Rod"),
         ("poseidons_rod", "Poseidon's Rod"),
         ("celestial_rod", "Celestial Rod")]
 BAITS = [("worm_bait", "Worm Bait", "#c98a7a"),
-         ("glow_bait", "Glow Bait", "#8ff2c4"),
+         ("chum_bait", "Chum Bait", "#8a5c46"),
+         ("lucky_bait", "Lucky Bait", "#5cbf5c"),
+         ("glimmer_bait", "Glimmer Bait", "#8ff2c4"),
          ("royal_bait", "Royal Bait", "#e8c355"),
          ("prismatic_lure", "Prismatic Lure", "#c48af2")]
 
@@ -274,28 +276,53 @@ def gen_data():
                         {"item": "minecraft:echo_shard"}],
         "result": {"id": "anglersdream:celestial_rod"},
     })
+    # Worm Bait is the base for every other bait; higher tiers need progressively
+    # more of it plus rarer specialty ingredients matching what they boost.
     w("worm_bait", {
         "type": "minecraft:crafting_shapeless",
-        "ingredients": [{"item": "minecraft:dirt"}, {"item": "minecraft:wheat_seeds"}],
-        "result": {"id": "anglersdream:worm_bait", "count": 3},
+        "ingredients": [{"item": "minecraft:rotten_flesh"}],
+        "result": {"id": "anglersdream:worm_bait", "count": 4},
     })
-    w("glow_bait", {
+    w("chum_bait", {
         "type": "minecraft:crafting_shapeless",
-        "ingredients": [{"item": "anglersdream:worm_bait"}, {"item": "minecraft:glow_ink_sac"}],
-        "result": {"id": "anglersdream:glow_bait", "count": 2},
+        "ingredients": [{"item": "anglersdream:worm_bait"},
+                        {"item": "minecraft:pufferfish"},
+                        {"item": "minecraft:bone_meal"}],
+        "result": {"id": "anglersdream:chum_bait", "count": 2},
+    })
+    w("lucky_bait", {
+        "type": "minecraft:crafting_shapeless",
+        "ingredients": [{"item": "anglersdream:worm_bait"},
+                        {"item": "anglersdream:worm_bait"},
+                        {"item": "minecraft:rabbit_foot"}],
+        "result": {"id": "anglersdream:lucky_bait", "count": 2},
+    })
+    w("glimmer_bait", {
+        "type": "minecraft:crafting_shapeless",
+        "ingredients": [{"item": "anglersdream:worm_bait"},
+                        {"item": "anglersdream:worm_bait"},
+                        {"item": "minecraft:glow_ink_sac"},
+                        {"item": "minecraft:phantom_membrane"}],
+        "result": {"id": "anglersdream:glimmer_bait", "count": 2},
     })
     w("royal_bait", {
         "type": "minecraft:crafting_shapeless",
         "ingredients": [{"item": "anglersdream:worm_bait"},
+                        {"item": "anglersdream:worm_bait"},
+                        {"item": "anglersdream:worm_bait"},
                         {"item": "minecraft:gold_nugget"},
                         {"item": "minecraft:gold_nugget"}],
         "result": {"id": "anglersdream:royal_bait", "count": 2},
     })
     w("prismatic_lure", {
         "type": "minecraft:crafting_shapeless",
-        "ingredients": [{"item": "anglersdream:glow_bait"},
-                        {"item": "minecraft:amethyst_shard"},
-                        {"item": "minecraft:prismarine_crystals"}],
+        "ingredients": [{"item": "anglersdream:worm_bait"},
+                        {"item": "anglersdream:worm_bait"},
+                        {"item": "anglersdream:worm_bait"},
+                        {"item": "anglersdream:worm_bait"},
+                        {"item": "minecraft:diamond"},
+                        {"item": "minecraft:obsidian"},
+                        {"item": "minecraft:gold_ingot"}],
         "result": {"id": "anglersdream:prismatic_lure", "count": 2},
     })
 

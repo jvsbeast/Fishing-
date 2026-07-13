@@ -64,11 +64,16 @@ public class AnglersDream implements ModInitializer {
     public static final Item CELESTIAL_ROD = new TieredRodItem(4, 0.90, 4.0,
             new Item.Settings().maxDamage(2048));
 
-    // Baits: rarity luck / size bonus / variant multiplier
-    public static final Item WORM_BAIT = new BaitItem(1, 0.10, 1.0, new Item.Settings());
-    public static final Item GLOW_BAIT = new BaitItem(2, 0.25, 1.25, new Item.Settings());
-    public static final Item ROYAL_BAIT = new BaitItem(3, 0.45, 1.5, new Item.Settings());
-    public static final Item PRISMATIC_LURE = new BaitItem(4, 0.70, 3.0, new Item.Settings());
+    // Baits: rarity luck / size bonus / variant multiplier.
+    // Each mid-tier bait specializes in one or two axes rather than boosting everything —
+    // Chum is size-only, Lucky is luck-only, Glimmer is variant-only, Royal is luck+size.
+    // Prismatic Lure alone boosts all three, and is the strongest bait overall.
+    public static final Item WORM_BAIT = new BaitItem(1, 0.08, 1.0, new Item.Settings());
+    public static final Item CHUM_BAIT = new BaitItem(0, 0.55, 1.0, new Item.Settings());
+    public static final Item LUCKY_BAIT = new BaitItem(4, 0.0, 1.0, new Item.Settings());
+    public static final Item GLIMMER_BAIT = new BaitItem(0, 0.0, 3.0, new Item.Settings());
+    public static final Item ROYAL_BAIT = new BaitItem(3, 0.35, 1.0, new Item.Settings());
+    public static final Item PRISMATIC_LURE = new BaitItem(5, 0.75, 4.0, new Item.Settings());
 
     public static final Block TROPHY_STAND = new TrophyBlock(AbstractBlock.Settings.create()
             .strength(1.0f)
@@ -102,7 +107,9 @@ public class AnglersDream implements ModInitializer {
         Registry.register(Registries.ITEM, id("celestial_rod"), CELESTIAL_ROD);
 
         Registry.register(Registries.ITEM, id("worm_bait"), WORM_BAIT);
-        Registry.register(Registries.ITEM, id("glow_bait"), GLOW_BAIT);
+        Registry.register(Registries.ITEM, id("chum_bait"), CHUM_BAIT);
+        Registry.register(Registries.ITEM, id("lucky_bait"), LUCKY_BAIT);
+        Registry.register(Registries.ITEM, id("glimmer_bait"), GLIMMER_BAIT);
         Registry.register(Registries.ITEM, id("royal_bait"), ROYAL_BAIT);
         Registry.register(Registries.ITEM, id("prismatic_lure"), PRISMATIC_LURE);
 
@@ -124,7 +131,9 @@ public class AnglersDream implements ModInitializer {
             entries.add(POSEIDONS_ROD);
             entries.add(CELESTIAL_ROD);
             entries.add(WORM_BAIT);
-            entries.add(GLOW_BAIT);
+            entries.add(CHUM_BAIT);
+            entries.add(LUCKY_BAIT);
+            entries.add(GLIMMER_BAIT);
             entries.add(ROYAL_BAIT);
             entries.add(PRISMATIC_LURE);
             entries.add(TROPHY_STAND_ITEM);
