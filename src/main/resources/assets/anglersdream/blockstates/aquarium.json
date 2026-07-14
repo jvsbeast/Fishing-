@@ -1,11 +1,6 @@
 {
   "multipart": [
     {
-      "apply": {
-        "model": "anglersdream:block/aquarium_core"
-      }
-    },
-    {
       "when": {
         "filled": "true"
       },

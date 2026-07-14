@@ -260,12 +260,6 @@ def gen_models():
         with open(f"{ASSETS}/models/block/{name}.json", "w") as f:
             json.dump(obj, f, indent=2)
 
-    wm("aquarium_core", {
-        "textures": {"particle": "anglersdream:block/aquarium_frame",
-                     "glass": "anglersdream:block/aquarium_glass"},
-        "elements": [{"from": [0, 0, 0], "to": [16, 16, 16],
-                      "faces": all_faces("#glass", True)}],
-    })
     # top-north horizontal beam; blockstate rotations place all 8 horizontal edges
     wm("aquarium_edge_h", {
         "textures": {"particle": "anglersdream:block/aquarium_frame",
@@ -280,11 +274,15 @@ def gen_models():
         "elements": [{"from": [0, 0, 0], "to": [1, 16, 1],
                       "faces": all_faces("#edge", False)}],
     })
+    # Water faces carry cullface so the pane between two filled tank blocks is
+    # culled (isSideInvisible merges same-fill neighbors) — one continuous body
+    # of water. The slight inset only affects outer faces, keeping the water
+    # from z-fighting the frame beams; interior seams are culled entirely.
     wm("aquarium_water", {
         "textures": {"particle": "anglersdream:block/aquarium_water",
                      "water": "anglersdream:block/aquarium_water"},
         "elements": [{"from": [0.1, 0.1, 0.1], "to": [15.9, 15.9, 15.9],
-                      "faces": all_faces("#water", False)}],
+                      "faces": all_faces("#water", True)}],
     })
     # standalone framed cube for the inventory/hand model
     wm("aquarium_item", {
@@ -298,7 +296,7 @@ def gen_models():
     edge = "anglersdream:block/aquarium_edge_h"
     vert = "anglersdream:block/aquarium_edge_v"
     multipart = [
-        {"apply": {"model": "anglersdream:block/aquarium_core"}},
+        # no glass face model at all: the block is fully clear except the borders
         {"when": {"filled": "true"}, "apply": {"model": "anglersdream:block/aquarium_water"}},
         # horizontal edges, top then bottom (x=180 flips top-north to bottom-south)
         {"when": {"up": "false", "north": "false"}, "apply": {"model": edge}},
@@ -1420,15 +1418,6 @@ def draw_aquarium_water():
     return img
 
 
-def draw_aquarium_glass():
-    # almost fully clear: a whisper of tint plus one faint diagonal glint
-    img = Image.new("RGBA", (16, 16), (215, 238, 246, 14))
-    d = ImageDraw.Draw(img)
-    d.line([(2, 6), (6, 2)], fill=(255, 255, 255, 46))
-    d.line([(3, 8), (8, 3)], fill=(255, 255, 255, 26))
-    return img
-
-
 def draw_aquarium_edge():
     # deliberately a single flat color: edge beams overlap at the block corners,
     # and identical coplanar texels make that overlap invisible
@@ -1561,7 +1550,6 @@ def gen_textures():
     draw_trophy_block().save(f"{tex_block}/trophy_stand.png")
     draw_aquarium_frame().save(f"{tex_block}/aquarium_frame.png")
     draw_aquarium_water().save(f"{tex_block}/aquarium_water.png")
-    draw_aquarium_glass().save(f"{tex_block}/aquarium_glass.png")
     draw_aquarium_edge().save(f"{tex_block}/aquarium_edge.png")
     gui_dir = f"{ASSETS}/textures/gui"
     os.makedirs(gui_dir, exist_ok=True)

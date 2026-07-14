@@ -77,11 +77,14 @@ public class AquariumBlock extends Block implements BlockEntityProvider {
     @Override
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         BlockState state = getDefaultState();
+        boolean inheritWater = false;
         for (Direction dir : Direction.values()) {
-            state = state.with(connection(dir),
-                    ctx.getWorld().getBlockState(ctx.getBlockPos().offset(dir)).isOf(this));
+            BlockState neighbor = ctx.getWorld().getBlockState(ctx.getBlockPos().offset(dir));
+            state = state.with(connection(dir), neighbor.isOf(this));
+            inheritWater |= isFilled(neighbor);
         }
-        return state;
+        // Joining a filled tank floods the new block too — one body of water.
+        return state.with(FILLED, inheritWater);
     }
 
     @Override
@@ -92,8 +95,14 @@ public class AquariumBlock extends Block implements BlockEntityProvider {
 
     @Override
     protected boolean isSideInvisible(BlockState state, BlockState stateFrom, Direction direction) {
-        // No pane of glass between two joined tank blocks, like vanilla glass.
-        return stateFrom.isOf(this) || super.isSideInvisible(state, stateFrom, direction);
+        // Faces between two joined tank blocks are culled (like vanilla glass) —
+        // including the water faces, which merges the water into one continuous
+        // volume. Only when both sides share the same fill state, so a filled
+        // block still shows its water wall against an empty neighbor.
+        if (stateFrom.isOf(this) && stateFrom.get(FILLED) == state.get(FILLED)) {
+            return true;
+        }
+        return super.isSideInvisible(state, stateFrom, direction);
     }
 
     @Override
