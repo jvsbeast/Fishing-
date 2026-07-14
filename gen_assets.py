@@ -1409,13 +1409,8 @@ def draw_aquarium_frame():
 
 
 def draw_aquarium_water():
-    img = Image.new("RGBA", (16, 16), (62, 128, 198, 150))
-    d = ImageDraw.Draw(img)
-    for y in (3, 8, 13):
-        for x in range(0, 16, 4):
-            d.point(((x + y) % 16, y), fill=(122, 182, 230, 170))
-            d.point(((x + y + 1) % 16, y), fill=(152, 206, 240, 160))
-    return img
+    # one flat translucent blue — no highlights, no speckles, just water
+    return Image.new("RGBA", (16, 16), (47, 118, 190, 112))
 
 
 def draw_aquarium_edge():
