@@ -274,15 +274,29 @@ def gen_models():
         "elements": [{"from": [0, 0, 0], "to": [1, 16, 1],
                       "faces": all_faces("#edge", False)}],
     })
-    # Water faces carry cullface so the pane between two filled tank blocks is
-    # culled (isSideInvisible merges same-fill neighbors) — one continuous body
-    # of water. The slight inset only affects outer faces, keeping the water
-    # from z-fighting the frame beams; interior seams are culled entirely.
+    # Water is six full-extent face planes, each inset 0.1px along its own
+    # normal only: adjacent blocks' water surfaces stay perfectly coplanar and
+    # continuous across seams (a cube inset on all axes leaves slit lines at
+    # every block boundary). Each face carries cullface, and isSideInvisible
+    # merges same-fill neighbors, so interior panes vanish — one body of water.
+    inset = 0.1
+    water_planes = []
+    for face, box in (
+        ("up",    [[0, 0, 0], [16, 16 - inset, 16]]),
+        ("down",  [[0, inset, 0], [16, 16, 16]]),
+        ("north", [[0, 0, inset], [16, 16, 16]]),
+        ("south", [[0, 0, 0], [16, 16, 16 - inset]]),
+        ("west",  [[inset, 0, 0], [16, 16, 16]]),
+        ("east",  [[0, 0, 0], [16 - inset, 16, 16]]),
+    ):
+        water_planes.append({
+            "from": box[0], "to": box[1],
+            "faces": {face: {"texture": "#water", "cullface": face}},
+        })
     wm("aquarium_water", {
         "textures": {"particle": "anglersdream:block/aquarium_water",
                      "water": "anglersdream:block/aquarium_water"},
-        "elements": [{"from": [0.1, 0.1, 0.1], "to": [15.9, 15.9, 15.9],
-                      "faces": all_faces("#water", True)}],
+        "elements": water_planes,
     })
     # standalone framed cube for the inventory/hand model
     wm("aquarium_item", {
