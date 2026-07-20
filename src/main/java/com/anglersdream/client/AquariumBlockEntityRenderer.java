@@ -6,6 +6,7 @@ import com.anglersdream.block.AquariumGroup;
 import com.anglersdream.fish.Variant;
 import com.anglersdream.item.FishItem;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
@@ -95,6 +96,11 @@ public class AquariumBlockEntityRenderer implements BlockEntityRenderer<Aquarium
 
         float bob = (float) Math.sin((now / 1_000_000_000.0) * 1.7 + slot * 2.1) * 0.03f;
 
+        // Light the fish by whatever reaches its current position in the tank,
+        // not the anchor block — so a glowstone lighting one side of a big tank
+        // brightens fish near it, and the whole tank isn't stuck at one level.
+        int fishLight = WorldRenderer.getLightmapCoordinates(be.getWorld(), BlockPos.ofFloored(swim.pos));
+
         matrices.push();
         BlockPos origin = be.getPos();
         matrices.translate(
@@ -105,7 +111,7 @@ public class AquariumBlockEntityRenderer implements BlockEntityRenderer<Aquarium
         matrices.scale(scale, scale, scale);
 
         MinecraftClient.getInstance().getItemRenderer().renderItem(
-                stack, ModelTransformationMode.FIXED, light, OverlayTexture.DEFAULT_UV,
+                stack, ModelTransformationMode.FIXED, fishLight, OverlayTexture.DEFAULT_UV,
                 matrices, vertexConsumers, be.getWorld(), slot);
         matrices.pop();
 

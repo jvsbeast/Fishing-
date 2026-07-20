@@ -16,6 +16,7 @@ import net.minecraft.util.ItemScatterer;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import org.jetbrains.annotations.Nullable;
@@ -91,6 +92,13 @@ public class AquariumBlock extends Block implements BlockEntityProvider {
     protected BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState,
                                                    WorldAccess world, BlockPos pos, BlockPos neighborPos) {
         return state.with(connection(direction), neighborState.isOf(this));
+    }
+
+    @Override
+    protected int getOpacity(BlockState state, BlockView world, BlockPos pos) {
+        // Fully light-permeable like glass: no attenuation, so a light source
+        // (e.g. glowstone) placed against the tank illuminates right through it.
+        return 0;
     }
 
     @Override

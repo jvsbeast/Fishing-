@@ -25,6 +25,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.component.ComponentType;
 import net.minecraft.component.type.FoodComponent;
@@ -100,7 +101,12 @@ public class AnglersDream implements ModInitializer {
     public static final Block AQUARIUM = new AquariumBlock(AbstractBlock.Settings.create()
             .strength(0.6f)
             .nonOpaque()
-            .sounds(BlockSoundGroup.GLASS));
+            .sounds(BlockSoundGroup.GLASS)
+            // Mirror vanilla glass so light passes and mobs don't spawn/suffocate on it.
+            .solidBlock(Blocks::never)
+            .suffocates(Blocks::never)
+            .blockVision(Blocks::never)
+            .allowsSpawning(Blocks::never));
     public static final Item AQUARIUM_ITEM = new BlockItem(AQUARIUM, new Item.Settings());
 
     public static BlockEntityType<TrophyBlockEntity> TROPHY_BLOCK_ENTITY;
