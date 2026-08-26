@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/handheld_rod",
-  "textures": {
-    "layer0": "anglersdream:item/celestial_rod_cast"
-  }
-}
